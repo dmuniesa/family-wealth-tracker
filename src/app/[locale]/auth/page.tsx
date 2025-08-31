@@ -56,15 +56,14 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md p-6">
         {/* Logo and App Name */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
-              <Users className="h-8 w-8 text-white" />
-            </div>
+        <div className="text-center mb-2">
+          <div className="flex justify-center mb-2">
+            <img 
+              src="/logo/logogray.png" 
+              alt="Family Wealth Tracker Logo" 
+              className="h-auto w-auto max-h-80"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('navigation.familyWealth')}
-          </h1>
           <p className="text-gray-600 mt-2">
             {t('auth.tagline')}
           </p>

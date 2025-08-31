@@ -1,5 +1,9 @@
 # Family Wealth Tracker
 
+<div align="center">
+  <img src="public/logo/logotrans.png" alt="Family Wealth Tracker Logo" width="200" />
+</div>
+
 ## 🎯 Project Overview
 A comprehensive web application for family wealth tracking where multiple users share access to monitor banking accounts, investments, and debts over time. Track your complete financial picture with automated net worth calculations that account for both assets and liabilities.
 

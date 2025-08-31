@@ -80,7 +80,11 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
       )}>
       <div className="flex h-16 items-center border-b border-gray-200 px-6">
         <div className="flex items-center space-x-2">
-          <Users className="h-6 w-6 text-blue-600" />
+          <img 
+            src="/logo/logo.png" 
+            alt="Logo" 
+            className="h-15 w-15"
+          />
           <span className="text-lg font-semibold">{t('navigation.familyWealth')}</span>
         </div>
       </div>
