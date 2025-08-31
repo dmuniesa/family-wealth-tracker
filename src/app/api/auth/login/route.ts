@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     });
 
     const session = await getSession(request, response);
+    console.log('Login - session before setting user:', JSON.stringify(session));
     session.user = {
       id: user.id,
       email: user.email,
@@ -51,8 +52,13 @@ export async function POST(request: NextRequest) {
       created_at: user.created_at,
     };
     console.log('Setting session user:', session.user.email);
+    console.log('Login - session after setting user:', JSON.stringify(session));
     await session.save?.();
     console.log('Session saved successfully');
+    
+    // Verify session was saved by reading it back
+    const verifySession = await getSession(request, response);
+    console.log('Login - verification read session:', JSON.stringify(verifySession));
 
     return response;
   } catch (error) {
