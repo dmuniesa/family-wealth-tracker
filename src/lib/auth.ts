@@ -32,7 +32,18 @@ console.log('Session config - Using password length:', (process.env.SESSION_SECR
 
 export async function getSession(req: NextRequest, res?: NextResponse): Promise<AuthSession> {
   const response = res || new NextResponse();
-  return await getIronSession<AuthSession>(req, response, sessionOptions);
+  try {
+    return await getIronSession<AuthSession>(req, response, sessionOptions);
+  } catch (error) {
+    console.log('Session decryption error, clearing cookie:', error);
+    // Clear the corrupted cookie
+    response.cookies.set(sessionOptions.cookieName, '', { 
+      ...sessionOptions.cookieOptions, 
+      maxAge: 0 
+    });
+    // Return a new empty session
+    return await getIronSession<AuthSession>(req, response, sessionOptions);
+  }
 }
 
 export function generateFamilyId(): number {
