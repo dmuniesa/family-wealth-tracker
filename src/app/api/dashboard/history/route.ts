@@ -14,10 +14,11 @@ export async function GET(request: NextRequest) {
     const historicalData = await db.all(`
       SELECT 
         DATE(b.date) as date,
-        SUM(b.amount) as net_worth
+        (SUM(CASE WHEN a.category = 'Banking' THEN b.amount ELSE 0 END) + 
+         SUM(CASE WHEN a.category = 'Investment' THEN b.amount ELSE 0 END)) as net_worth
       FROM balances b
       JOIN accounts a ON b.account_id = a.id
-      WHERE a.family_id = ?
+      WHERE a.family_id = ? AND a.category IN ('Banking', 'Investment')
       GROUP BY DATE(b.date)
       ORDER BY DATE(b.date) ASC
     `, [session.user.family_id]);

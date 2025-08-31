@@ -4,6 +4,7 @@
     "accounts": "Cuentas",
     "history": "Historial",
     "backups": "Respaldos",
+    "members": "Miembros",
     "settings": "Configuración",
     "familyWealth": "Patrimonio Familiar",
     "signOut": "Cerrar Sesión"
@@ -228,5 +229,29 @@
     "lastBackup": "Último Respaldo",
     "nextScheduled": "Próximo Programado",
     "loading": "Cargando respaldos..."
+  },
+  "members": {
+    "title": "Miembros Familiares",
+    "subtitle": "Gestiona miembros familiares y configuración de registro",
+    "totalMembers": "Total Miembros",
+    "registrationStatus": "Estado de Registro",
+    "registrationEnabled": "Registro Habilitado",
+    "registrationDisabled": "Registro Deshabilitado",
+    "enableRegistration": "Habilitar Registro",
+    "disableRegistration": "Deshabilitar Registro",
+    "memberName": "Nombre",
+    "memberEmail": "Email",
+    "memberJoined": "Se Unió",
+    "memberActions": "Acciones",
+    "noMembers": "No se encontraron miembros familiares",
+    "registrationSettings": "Configuración de Registro",
+    "registrationDescription": "Controla si nuevos usuarios pueden registrarse con tu ID familiar",
+    "familyMembersList": "Lista de Miembros Familiares",
+    "familyMembersDescription": "Ver y gestionar todos los miembros de tu familia",
+    "removeUser": "Eliminar Usuario",
+    "removeUserConfirm": "¿Estás seguro de que quieres eliminar este usuario de la familia?",
+    "userRemoved": "Usuario eliminado exitosamente",
+    "cannotRemoveSelf": "No puedes eliminarte a ti mismo",
+    "loading": "Cargando miembros..."
   }
 }

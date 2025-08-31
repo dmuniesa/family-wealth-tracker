@@ -33,9 +33,10 @@ type LoginFormValues = {
 interface LoginFormProps {
   onLogin: (user: User) => void
   onSwitchToRegister: () => void
+  registrationEnabled?: boolean
 }
 
-export function LoginForm({ onLogin, onSwitchToRegister }: LoginFormProps) {
+export function LoginForm({ onLogin, onSwitchToRegister, registrationEnabled = true }: LoginFormProps) {
   const t = useTranslations()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -122,16 +123,18 @@ export function LoginForm({ onLogin, onSwitchToRegister }: LoginFormProps) {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? t('auth.signingIn') : t('auth.signInButton')}
             </Button>
-            <div className="text-center">
-              <Button
-                type="button"
-                variant="link"
-                onClick={onSwitchToRegister}
-                className="text-sm"
-              >
-                {t('auth.switchToRegister')}
-              </Button>
-            </div>
+            {registrationEnabled && (
+              <div className="text-center">
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={onSwitchToRegister}
+                  className="text-sm"
+                >
+                  {t('auth.switchToRegister')}
+                </Button>
+              </div>
+            )}
           </form>
         </Form>
       </CardContent>

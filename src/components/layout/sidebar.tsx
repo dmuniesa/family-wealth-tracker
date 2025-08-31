@@ -57,6 +57,11 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
       icon: Shield,
     },
     {
+      name: t('navigation.members'),
+      href: `/${locale}/members`,
+      icon: Users,
+    },
+    {
       name: t('navigation.settings'),
       href: `/${locale}/settings`,
       icon: Settings,

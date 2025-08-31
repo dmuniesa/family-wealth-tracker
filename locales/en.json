@@ -4,6 +4,7 @@
     "accounts": "Accounts",
     "history": "History",
     "backups": "Backups",
+    "members": "Members",
     "settings": "Settings",
     "familyWealth": "Family Wealth",
     "signOut": "Sign Out"
@@ -228,5 +229,29 @@
     "lastBackup": "Last Backup",
     "nextScheduled": "Next Scheduled",
     "loading": "Loading backups..."
+  },
+  "members": {
+    "title": "Family Members",
+    "subtitle": "Manage family members and registration settings",
+    "totalMembers": "Total Members",
+    "registrationStatus": "Registration Status",
+    "registrationEnabled": "Registration Enabled",
+    "registrationDisabled": "Registration Disabled",
+    "enableRegistration": "Enable Registration",
+    "disableRegistration": "Disable Registration",
+    "memberName": "Name",
+    "memberEmail": "Email",
+    "memberJoined": "Joined",
+    "memberActions": "Actions",
+    "noMembers": "No family members found",
+    "registrationSettings": "Registration Settings",
+    "registrationDescription": "Control whether new users can register with your family ID",
+    "familyMembersList": "Family Members List",
+    "familyMembersDescription": "View and manage all members in your family",
+    "removeUser": "Remove User",
+    "removeUserConfirm": "Are you sure you want to remove this user from the family?",
+    "userRemoved": "User removed successfully",
+    "cannotRemoveSelf": "You cannot remove yourself",
+    "loading": "Loading members..."
   }
 }

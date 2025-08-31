@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { LoginForm } from "@/components/auth/login-form"
 import { RegisterForm } from "@/components/auth/register-form"
@@ -12,6 +12,8 @@ export default function AuthPage() {
   const t = useTranslations()
   const locale = useLocale()
   const [isLogin, setIsLogin] = useState(true)
+  const [registrationEnabled, setRegistrationEnabled] = useState(false)
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   const handleLogin = () => {
@@ -21,6 +23,28 @@ export default function AuthPage() {
   const handleRegister = () => {
     router.push(`/${locale}/dashboard`)
   }
+
+  useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/registration-status')
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Registration status:', data.enabled)
+          setRegistrationEnabled(data.enabled || false)
+        } else {
+          console.log('Registration status check failed:', response.status)
+        }
+      } catch (error) {
+        console.error('Failed to check registration status:', error)
+        setRegistrationEnabled(false)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkRegistrationStatus()
+  }, [])
 
   const handleLanguageChange = (newLocale: string) => {
     localStorage.setItem('preferred-locale', newLocale)
@@ -46,15 +70,27 @@ export default function AuthPage() {
           </p>
         </div>
 
-        {isLogin ? (
+        {loading ? (
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-gray-600">{t('common.loading')}</p>
+          </div>
+        ) : isLogin ? (
           <LoginForm
             onLogin={handleLogin}
-            onSwitchToRegister={() => setIsLogin(false)}
+            onSwitchToRegister={() => registrationEnabled && setIsLogin(false)}
+            registrationEnabled={registrationEnabled}
           />
-        ) : (
+        ) : registrationEnabled ? (
           <RegisterForm
             onRegister={handleRegister}
             onSwitchToLogin={() => setIsLogin(true)}
+          />
+        ) : (
+          <LoginForm
+            onLogin={handleLogin}
+            onSwitchToRegister={() => {}}
+            registrationEnabled={false}
           />
         )}
 

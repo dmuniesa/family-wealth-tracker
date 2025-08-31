@@ -48,6 +48,11 @@ export class UserService {
       [newPasswordHash, userId]
     );
   }
+
+  static async deleteUser(userId: number): Promise<void> {
+    const db = await getDatabase();
+    await db.run('DELETE FROM users WHERE id = ?', [userId]);
+  }
 }
 
 export class AccountService {
@@ -197,6 +202,7 @@ export class BalanceService {
       ) b ON a.id = b.account_id AND b.rn = 1
       WHERE a.family_id = ?
     `, [familyId]) as any;
+    
 
     const lastMonth = new Date();
     lastMonth.setMonth(lastMonth.getMonth() - 1);

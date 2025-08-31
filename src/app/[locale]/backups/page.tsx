@@ -155,19 +155,20 @@ export default function BackupsPage() {
 
   const updateSchedule = async (frequency: string, time?: string) => {
     try {
-      const scheduleTime = time || scheduleTime
+      const timeToUse = time || scheduleTime
       const response = await fetch('/api/backups/schedule', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ frequency, time: scheduleTime }),
+        body: JSON.stringify({ frequency, time: timeToUse }),
       })
       
       if (response.ok) {
         setScheduleFrequency(frequency)
-        setScheduleTime(scheduleTime)
-        await fetchBackups() // Only refresh backups data
+        setScheduleTime(timeToUse)
+        await fetchSchedule() // Fetch updated schedule info including nextRun
+      }
     } catch (error) {
       console.error('Failed to update schedule:', error)
     }

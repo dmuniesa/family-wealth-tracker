@@ -95,12 +95,19 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Backup Management**: Download, restore, and delete backup files
 - **Secure Storage**: OAuth 2.0 authentication for cloud providers
 
+### 6. Family Member Management
+- **Member Overview**: View all family members and their registration details
+- **Registration Control**: Enable/disable new member registration for family access
+- **Member Removal**: Remove family members (except current user) with confirmation
+- **Member Statistics**: Display total family member count and status indicators
+- **User Identification**: Clear marking of current user in member listings
+
 ## 🎛️ User Interface Requirements
 
 ### Layout
 - Clean, minimalist design using Tailwind CSS + shadcn/ui
 - Responsive design (desktop and mobile friendly)
-- Sidebar navigation with main sections: Dashboard, Accounts, History, Backups, Settings
+- Sidebar navigation with main sections: Dashboard, Accounts, History, Backups, Members, Settings
 
 ### Account Identification
 - Display account name prominently
@@ -160,6 +167,9 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Backup & Recovery System**: Complete backup functionality with cloud storage integration
 - **Scheduled Backups**: Automated backup creation with configurable intervals
 - **Cloud Storage Integration**: OAuth 2.0 authentication for Dropbox and Google Drive
+- **Family Member Management**: Complete member administration with registration controls
+- **Dynamic Registration Settings**: Toggle new user registration on/off for family access control
+- **Member Administration**: View, manage, and remove family members with proper safeguards
 
 ## 🎯 Success Criteria
 - ✅ Family members can easily identify and manage all account types including debts

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { UserService } from '@/lib/db-operations';
 import { hashPassword, generateFamilyId } from '@/lib/auth';
+import { SettingsService } from '@/lib/settings-service';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -12,6 +13,15 @@ const registerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if registration is enabled
+    const registrationEnabled = await SettingsService.isRegistrationEnabled()
+    if (!registrationEnabled) {
+      return NextResponse.json(
+        { error: 'User registration is currently disabled' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { email, password, name, familyId } = registerSchema.parse(body);
 
