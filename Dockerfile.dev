@@ -1,0 +1,34 @@
+# Development Dockerfile for Family Wealth Tracker
+FROM node:18-alpine
+
+# Install dependencies needed for native modules
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    sqlite
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Create data directory for development
+RUN mkdir -p data
+
+# Set development environment
+ENV NODE_ENV=development
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Expose development port
+EXPOSE 3000
+
+# Use development command with hot reload
+CMD ["npm", "run", "dev"]

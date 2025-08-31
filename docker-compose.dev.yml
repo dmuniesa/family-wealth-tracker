@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  family-wealth-tracker-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: family-wealth-tracker-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      # Exclude node_modules from sync for better performance
+      - /app/node_modules
+      # Mount data directory for database persistence
+      - ./data:/app/data
+    environment:
+      # Development environment variables
+      - NODE_ENV=development
+      - DATABASE_PATH=./data/wealth_tracker.db
+      # Generate these with: openssl rand -hex 32
+      - SESSION_SECRET=dev-session-secret-replace-in-production-32chars
+      - ENCRYPTION_KEY=dev-encryption-key-replace-in-production-32chars
+      # Development settings
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      # Disable Next.js telemetry in development
+      - NEXT_TELEMETRY_DISABLED=1
+    restart: unless-stopped
+    networks:
+      - wealth-tracker-dev
+
+  # Optional: Add a development database viewer
+  # Uncomment if you want to inspect the SQLite database
+  # adminer:
+  #   image: adminer
+  #   container_name: family-wealth-tracker-adminer
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - ADMINER_DEFAULT_SERVER=family-wealth-tracker-dev
+  #   networks:
+  #     - wealth-tracker-dev
+
+networks:
+  wealth-tracker-dev:
+    driver: bridge
+
+# Development usage:
+# docker-compose -f docker-compose.dev.yml up --build
+# 
+# This will:
+# - Run in development mode with hot reload
+# - Mount source code for live changes
+# - Persist database in ./data directory
+# - Use development environment variables
+# 
+# Remember to:
+# 1. Replace SESSION_SECRET and ENCRYPTION_KEY with secure values
+# 2. Keep your .env.local file for local overrides
+# 3. The database will be created in ./data/wealth_tracker.db
