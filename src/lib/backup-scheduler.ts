@@ -108,7 +108,7 @@ export class BackupScheduler {
     
     const [hour, minute] = time.split(':').map(Number)
     const now = new Date()
-    let nextRun = new Date()
+    const nextRun = new Date()
     
     nextRun.setHours(hour, minute, 0, 0)
     

@@ -6,7 +6,6 @@ import { LoginForm } from "@/components/auth/login-form"
 import { RegisterForm } from "@/components/auth/register-form"
 import { useTranslations, useLocale } from 'next-intl'
 import { Button } from "@/components/ui/button"
-import { Users } from "lucide-react"
 
 export default function AuthPage() {
   const t = useTranslations()

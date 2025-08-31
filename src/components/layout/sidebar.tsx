@@ -12,8 +12,6 @@ import {
   Settings, 
   LogOut,
   Users,
-  Menu,
-  X,
   Shield
 } from "lucide-react"
 import { useTranslations, useLocale } from 'next-intl'

@@ -6,11 +6,9 @@ import { AuthGuard } from "@/components/auth/auth-guard"
 import { AdminGuard } from "@/components/auth/admin-guard"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { 
   Shield, 
   Download, 
-  Upload, 
   Calendar, 
   Cloud, 
   Plus, 
@@ -373,7 +371,6 @@ export default function BackupsPage() {
               <CardContent className="space-y-4">
                 {cloudConfigs.map((config) => {
                   const isDropbox = config.provider === 'dropbox'
-                  const isGoogleDrive = config.provider === 'google-drive'
                   const isConnectingThis = isConnecting === config.provider
                   
                   return (
