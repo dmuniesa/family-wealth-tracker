@@ -20,8 +20,8 @@ services:
       - NODE_ENV=development
       - DATABASE_PATH=./data/wealth_tracker.db
       # Generate these with: openssl rand -hex 32
-      - SESSION_SECRET=dev-session-secret-replace-in-production-32chars
-      - ENCRYPTION_KEY=dev-encryption-key-replace-in-production-32chars
+      - SESSION_SECRET=your-32-character-encryption-key!!
+      - ENCRYPTION_KEY=your-32-character-encryption-key!!
       # Development settings
       - PORT=3000
       - HOSTNAME=0.0.0.0
