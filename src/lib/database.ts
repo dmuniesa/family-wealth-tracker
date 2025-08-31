@@ -20,15 +20,15 @@ export async function getDatabase(): Promise<Database> {
   
   const sqlite = new sqlite3.Database(dbPath);
   
-  const runAsync = promisify(sqlite.run.bind(sqlite));
-  const getAsync = promisify(sqlite.get.bind(sqlite));
-  const allAsync = promisify(sqlite.all.bind(sqlite));
-  const closeAsync = promisify(sqlite.close.bind(sqlite));
+  const runAsync = promisify(sqlite.run.bind(sqlite)) as (sql: string, params?: unknown[]) => Promise<void>;
+  const getAsync = promisify(sqlite.get.bind(sqlite)) as (sql: string, params?: unknown[]) => Promise<unknown>;
+  const allAsync = promisify(sqlite.all.bind(sqlite)) as (sql: string, params?: unknown[]) => Promise<unknown[]>;
+  const closeAsync = promisify(sqlite.close.bind(sqlite)) as () => Promise<void>;
 
   db = {
     run: async (sql: string, params?: unknown[]) => {
       await runAsync(sql, params);
-      return { lastID: sqlite.lastID, changes: sqlite.changes };
+      return { lastID: (sqlite as any).lastID, changes: (sqlite as any).changes };
     },
     get: getAsync,
     all: allAsync,
@@ -56,7 +56,7 @@ async function initializeDatabase(db: Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       family_id INTEGER NOT NULL,
       name TEXT NOT NULL,
-      category TEXT CHECK(category IN ('Banking', 'Investment')) NOT NULL,
+      category TEXT CHECK(category IN ('Banking', 'Investment', 'Debt')) NOT NULL,
       currency TEXT NOT NULL,
       iban_encrypted TEXT NOT NULL,
       notes TEXT,
@@ -65,6 +65,51 @@ async function initializeDatabase(db: Database) {
       FOREIGN KEY (family_id) REFERENCES users(family_id)
     )
   `;
+
+  // Check if accounts table exists and update constraint if needed
+  try {
+    const tableInfo = await db.get(`
+      SELECT sql FROM sqlite_master 
+      WHERE type = 'table' AND name = 'accounts'
+    `) as any;
+    
+    if (tableInfo && tableInfo.sql && !tableInfo.sql.includes("'Debt'")) {
+      // Need to update the constraint - SQLite doesn't support ALTER TABLE for CHECK constraints
+      // So we need to recreate the table
+      await db.run('BEGIN TRANSACTION');
+      
+      // Create new table with updated constraint
+      await db.run(`
+        CREATE TABLE accounts_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          family_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          category TEXT CHECK(category IN ('Banking', 'Investment', 'Debt')) NOT NULL,
+          currency TEXT NOT NULL,
+          iban_encrypted TEXT NOT NULL,
+          notes TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (family_id) REFERENCES users(family_id)
+        )
+      `);
+      
+      // Copy data from old table
+      await db.run(`
+        INSERT INTO accounts_new 
+        SELECT * FROM accounts
+      `);
+      
+      // Drop old table and rename new one
+      await db.run('DROP TABLE accounts');
+      await db.run('ALTER TABLE accounts_new RENAME TO accounts');
+      
+      await db.run('COMMIT');
+    }
+  } catch (error) {
+    await db.run('ROLLBACK');
+    console.error('Error migrating accounts table:', error);
+  }
 
   const createBalancesTable = `
     CREATE TABLE IF NOT EXISTS balances (

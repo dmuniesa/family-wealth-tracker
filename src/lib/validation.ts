@@ -13,6 +13,13 @@ export const ibanSchema = z.string()
   .max(34, 'IBAN must not exceed 34 characters')
   .regex(/^[A-Z]{2}\d{2}[A-Z0-9]+$/, 'Please enter a valid IBAN format');
 
+export const optionalIbanSchema = z.string()
+  .optional()
+  .refine((iban) => {
+    if (!iban || iban.trim() === '') return true;
+    return /^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(iban) && iban.length >= 15 && iban.length <= 34;
+  }, 'Please enter a valid IBAN format');
+
 export const currencySchema = z.enum(['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD']);
 
 export const amountSchema = z.number()

@@ -24,22 +24,22 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { ibanSchema, currencySchema } from "@/lib/validation"
+import { ibanSchema, optionalIbanSchema, currencySchema } from "@/lib/validation"
 
 // Create schema function to accept translated messages
-const createAccountSchema = (t: any) => z.object({
+const createAccountSchema = (t: any, category?: string) => z.object({
   name: z.string().min(1, t('forms.required')),
-  category: z.enum(["Banking", "Investment"]),
+  category: z.enum(["Banking", "Investment", "Debt"]),
   currency: currencySchema,
-  iban: ibanSchema,
+  iban: category === 'Debt' ? optionalIbanSchema : ibanSchema,
   notes: z.string().optional(),
 })
 
 type AccountFormValues = {
   name: string
-  category: "Banking" | "Investment"
+  category: "Banking" | "Investment" | "Debt"
   currency: "EUR" | "USD" | "GBP" | "CHF" | "JPY" | "CAD" | "AUD"
-  iban: string
+  iban?: string
   notes?: string
 }
 
@@ -55,10 +55,7 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const accountSchema = createAccountSchema(t)
-  
   const form = useForm<AccountFormValues>({
-    resolver: zodResolver(accountSchema),
     defaultValues: {
       name: initialData?.name || "",
       category: initialData?.category || "Banking",
@@ -68,11 +65,20 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
     },
   })
 
+  const watchedCategory = form.watch('category')
+
   async function onSubmit(values: AccountFormValues) {
     setIsLoading(true)
     setError(null)
 
     try {
+      // Validate IBAN requirement based on category
+      if (values.category !== 'Debt' && (!values.iban || values.iban.trim() === '')) {
+        setError('IBAN is required for Banking and Investment accounts')
+        setIsLoading(false)
+        return
+      }
+
       const url = isEdit ? `/api/accounts/${initialData?.id}` : '/api/accounts'
       const method = isEdit ? 'PUT' : 'POST'
       
@@ -135,6 +141,7 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
                     <SelectContent>
                       <SelectItem value="Banking">{t('categories.banking')}</SelectItem>
                       <SelectItem value="Investment">{t('categories.investment')}</SelectItem>
+                      <SelectItem value="Debt">{t('categories.debt')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -169,23 +176,25 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="iban"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('forms.iban')}</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder={t('forms.ibanPlaceholder')} 
-                      {...field} 
-                      onChange={(e) => field.onChange(e.target.value.replace(/\s/g, '').toUpperCase())}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {watchedCategory !== 'Debt' && (
+              <FormField
+                control={form.control}
+                name="iban"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('forms.iban')}</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder={t('forms.ibanPlaceholder')} 
+                        {...field} 
+                        onChange={(e) => field.onChange(e.target.value.replace(/\s/g, '').toUpperCase())}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

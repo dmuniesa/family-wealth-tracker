@@ -6,7 +6,7 @@ import { AuthGuard } from "@/components/auth/auth-guard"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { DollarSign, TrendingUp, TrendingDown, Plus } from "lucide-react"
+import { DollarSign, TrendingUp, TrendingDown, Plus, CreditCard } from "lucide-react"
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { AccountForm } from "@/components/accounts/account-form"
 import { BalanceForm } from "@/components/accounts/balance-form"
@@ -27,7 +27,7 @@ export default function DashboardPage() {
     .map(account => ({
       name: account.name,
       value: account.current_balance,
-      color: account.category === 'Banking' ? '#3B82F6' : '#10B981'
+      color: account.category === 'Banking' ? '#3B82F6' : account.category === 'Investment' ? '#10B981' : '#EF4444'
     }))
 
   const timeSeriesData = historicalData.map(item => ({
@@ -173,7 +173,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{t('dashboard.totalBanking')}</CardTitle>
@@ -194,6 +194,18 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">
                 {dashboardData ? formatCurrency(dashboardData.total_investment) : '€0.00'}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{t('dashboard.totalDebt')}</CardTitle>
+              <CreditCard className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">
+                {dashboardData ? formatCurrency(dashboardData.total_debt) : '€0.00'}
               </div>
             </CardContent>
           </Card>
@@ -268,7 +280,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg sm:text-xl">{t('dashboard.assetDistribution')}</CardTitle>
-              <CardDescription>{t('dashboard.bankingVsInvestment')}</CardDescription>
+              <CardDescription>{t('dashboard.assetsVsDebts')}</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>

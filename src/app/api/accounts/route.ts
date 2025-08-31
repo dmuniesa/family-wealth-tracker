@@ -5,10 +5,18 @@ import { getSession } from '@/lib/auth';
 
 const createAccountSchema = z.object({
   name: z.string().min(1),
-  category: z.enum(['Banking', 'Investment']),
+  category: z.enum(['Banking', 'Investment', 'Debt']),
   currency: z.string().min(3).max(3),
-  iban: z.string().min(10),
+  iban: z.string().optional(),
   notes: z.string().optional(),
+}).refine((data) => {
+  if (data.category === 'Debt') {
+    return true;
+  }
+  return data.iban && data.iban.length >= 10;
+}, {
+  message: 'IBAN is required for Banking and Investment accounts',
+  path: ['iban']
 });
 
 export async function GET(request: NextRequest) {

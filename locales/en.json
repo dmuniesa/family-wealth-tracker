@@ -12,12 +12,13 @@
     "subtitle": "Family wealth overview",
     "totalBanking": "Total Banking",
     "totalInvestment": "Total Investment",
+    "totalDebt": "Total Debt",
     "netWorth": "Net Worth",
     "monthlyChange": "Monthly Change",
     "netWorthEvolution": "Net Worth Evolution",
     "trackWealth": "Track your wealth over time",
     "assetDistribution": "Asset Distribution",
-    "bankingVsInvestment": "Banking vs Investment breakdown",
+    "assetsVsDebts": "Assets vs Debts breakdown",
     "addAccount": "Add Account",
     "recordBalance": "Record Balance",
     "loading": "Loading dashboard..."
@@ -155,7 +156,8 @@
   },
   "categories": {
     "banking": "Banking",
-    "investment": "Investment"
+    "investment": "Investment",
+    "debt": "Debt"
   },
   "currencies": {
     "eur": "EUR",

@@ -12,12 +12,13 @@
     "subtitle": "Resumen del patrimonio familiar",
     "totalBanking": "Total Bancario",
     "totalInvestment": "Total Inversiones",
+    "totalDebt": "Total Deudas",
     "netWorth": "Patrimonio Neto",
     "monthlyChange": "Cambio Mensual",
     "netWorthEvolution": "Evolución del Patrimonio Neto",
     "trackWealth": "Rastrea tu patrimonio a lo largo del tiempo",
     "assetDistribution": "Distribución de Activos",
-    "bankingVsInvestment": "Desglose Bancario vs Inversiones",
+    "assetsVsDebts": "Desglose Activos vs Deudas",
     "addAccount": "Agregar Cuenta",
     "recordBalance": "Registrar Saldo",
     "loading": "Cargando panel principal..."
@@ -155,7 +156,8 @@
   },
   "categories": {
     "banking": "Bancario",
-    "investment": "Inversión"
+    "investment": "Inversión",
+    "debt": "Deuda"
   },
   "currencies": {
     "eur": "EUR",

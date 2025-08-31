@@ -11,7 +11,7 @@ export interface Account {
   id: number;
   family_id: number;
   name: string;
-  category: "Banking" | "Investment";
+  category: "Banking" | "Investment" | "Debt";
   currency: "EUR" | "USD" | "GBP" | "CHF" | "JPY" | "CAD" | "AUD";
   iban_encrypted: string;
   notes?: string;
@@ -36,6 +36,7 @@ export interface AccountWithBalance extends Account {
 export interface DashboardData {
   total_banking: number;
   total_investment: number;
+  total_debt: number;
   net_worth: number;
   month_over_month_change: number;
 }

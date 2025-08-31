@@ -1,14 +1,16 @@
-# Family Wealth Tracker - Requirements Specification
+# Family Wealth Tracker
 
 ## 🎯 Project Overview
-Build a web application for family wealth tracking where multiple users share access to a single family account to monitor banking and investment accounts over time.
+A comprehensive web application for family wealth tracking where multiple users share access to monitor banking accounts, investments, and debts over time. Track your complete financial picture with automated net worth calculations that account for both assets and liabilities.
 
 ## 🏗️ Technical Stack
-- **Frontend**: React with Next.js, Tailwind CSS + shadcn/ui components, Recharts for charts
-- **Backend**: Node.js with Express (or Python FastAPI)
-- **Database**: SQLite
-- **Authentication**: Email/password with bcrypt encryption
-- **Security**: HTTPS, encrypt sensitive data including IBAN numbers
+- **Frontend**: React with Next.js 15.5.2, Tailwind CSS + shadcn/ui components, Recharts for visualizations
+- **Backend**: Next.js API routes with TypeScript
+- **Database**: SQLite with encrypted IBAN storage
+- **Authentication**: Session-based authentication with bcrypt encryption
+- **Internationalization**: next-intl (English/Spanish support)
+- **Security**: HTTPS, encrypted sensitive data, input validation
+- **Deployment**: Docker with Docker Compose support
 
 ## 📊 Database Schema
 
@@ -27,7 +29,7 @@ Build a web application for family wealth tracking where multiple users share ac
 - id (Primary Key)
 - family_id (Foreign Key)
 - name (e.g., "Santander Payroll Account")
-- category (ENUM: "Banking", "Investment")
+- category (ENUM: "Banking", "Investment", "Debt")
 - currency (e.g., "EUR", "USD")
 - iban_encrypted (Full IBAN encrypted)
 - notes (Optional text field)
@@ -54,10 +56,11 @@ Build a web application for family wealth tracking where multiple users share ac
 ## 🎨 Core Features
 
 ### 1. Account Management
-- **Create Account**: Add banking or investment accounts with name, category, currency, IBAN, and optional notes
-- **Edit Account**: Modify account details
+- **Create Account**: Add banking, investment, or debt accounts with name, category, currency, and optional notes (IBAN required only for banking/investment accounts)
+- **Edit Account**: Modify account details for all account types
 - **Delete Account**: Remove account and all associated balance history
-- **List Accounts**: Display all family accounts with easy identification via name + IBAN
+- **List Accounts**: Display all family accounts with easy identification via name (and IBAN for banking/investment accounts)
+- **Debt Tracking**: Monitor mortgages, loans, and other liabilities alongside assets
 
 ### 2. Balance Tracking
 - **Add Balance**: Manual entry of balance amount with date
@@ -69,17 +72,21 @@ Build a web application for family wealth tracking where multiple users share ac
 **Main Dashboard displays**:
 - Total banking accounts balance
 - Total investment accounts balance
-- Net Worth calculation (total assets)
+- Total debt balance (highlighted in red)
+- Net Worth calculation (Assets - Debts)
 - Month-over-month change percentage
 
 **Charts & Visualizations**:
 - Line/area chart showing net worth evolution over time
-- Pie/donut chart showing current distribution (Banking vs Investment)
-- Historical trends with date range filtering
+- Pie/donut chart showing asset vs debt distribution with color coding
+- Historical trends with comprehensive debt tracking
+- Visual distinction between assets (blue/green) and debts (red)
 
 ### 4. Data Management
-- **Export**: Download data as CSV/Excel format
-- **Import** (Optional): Upload balance data from CSV files
+- **Export**: Download comprehensive family financial data as CSV format
+- **Import**: Upload balance data from CSV files with automatic account matching
+- **Family Management**: Share Family ID for multi-user access
+- **Multilingual Support**: Full interface in English and Spanish
 
 ## 🎛️ User Interface Requirements
 
@@ -90,8 +97,9 @@ Build a web application for family wealth tracking where multiple users share ac
 
 ### Account Identification
 - Display account name prominently
-- Show IBAN for easy recognition
-- Use icons or colors to distinguish Banking vs Investment accounts
+- Show IBAN for banking/investment accounts (debt accounts don't require IBAN)
+- Color-coded categories: Banking (blue), Investment (green), Debt (red)
+- Icons to distinguish account types (DollarSign, TrendingUp, CreditCard)
 
 ### Forms
 - Simple, intuitive forms for adding/editing accounts and balances
@@ -129,23 +137,75 @@ Build a web application for family wealth tracking where multiple users share ac
 - Batch balance entry for multiple accounts
 - Historical balance editing interface
 
-## 🎯 Success Criteria
-- Family members can easily identify accounts using names and IBAN
-- Intuitive balance entry and editing workflow
-- Clear visual representation of wealth evolution
-- Secure handling of financial data with encryption
-- Responsive design works on all devices
-- Data export functionality for external analysis
+## ✅ Implemented Features
+- **Complete Debt Tracking**: Full support for mortgage, loan, and liability management (no IBAN required)
+- **Smart Net Worth Calculation**: Automatic calculation of (Assets - Debts)
+- **Visual Debt Management**: Red-coded debt visualization in charts and dashboard
+- **Trilingual Account Categories**: Banking, Investment, and Debt account types
+- **Intelligent Form Validation**: IBAN required only for banking/investment accounts
+- **Comprehensive Dashboard**: 5-card layout showing Banking, Investment, Debt, Net Worth, and Monthly Change
+- **Enhanced Charts**: Pie charts with debt visualization and line charts tracking true net worth
+- **Automatic Database Migration**: Seamless updates to existing databases
+- **Bilingual Interface**: Complete English and Spanish translation support
+- **Secure Data Handling**: Encrypted IBAN storage with proper input validation
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+- **Docker Deployment**: Production-ready containerization with Docker Compose
 
-## 📋 Optional Enhancements (Future Iterations)
+## 🎯 Success Criteria
+- ✅ Family members can easily identify and manage all account types including debts
+- ✅ Intuitive debt tracking with clear visual distinction from assets
+- ✅ Accurate net worth calculation accounting for liabilities
+- ✅ Clear visual representation of complete financial picture
+- ✅ Secure handling of financial data with encryption
+- ✅ Responsive design works on all devices
+- ✅ Data export functionality for external analysis
+- ✅ Multi-language support for international families
+
+## 🚀 Quick Start
+
+### Development Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd web_patrimonio
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your encryption keys
+
+# Start development server
+npm run dev
+```
+
+### Docker Deployment
+```bash
+# Quick deployment
+npm run docker:up
+
+# Access application
+open http://localhost:3000
+```
+
+## 📋 Future Enhancements
 - Email notifications for balance updates
-- Budget tracking and goals
-- Multi-currency conversion
+- Budget tracking and debt payment goals
+- Multi-currency conversion with real-time rates
 - Mobile app companion
 - Automated bank integration (API)
-- Expense categorization
-- Financial reports and insights
+- Expense categorization and cash flow analysis
+- Advanced financial reports and debt-to-income ratios
+- Debt amortization schedules and payment tracking
 
 ---
 
-**Note**: This application handles sensitive financial data. Ensure all security best practices are implemented, including proper input validation, secure session management, and encrypted data transmission.
+## 🔒 Security Note
+This application handles sensitive financial data including debt information. All security best practices are implemented:
+- IBAN encryption at rest
+- Secure session management
+- HTTPS enforcement
+- Input validation and sanitization
+- SQL injection prevention
+- XSS protection
