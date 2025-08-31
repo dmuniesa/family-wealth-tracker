@@ -24,6 +24,10 @@ export const sessionOptions = {
   },
 };
 
+console.log('Session config - NODE_ENV:', process.env.NODE_ENV);
+console.log('Session config - SESSION_SECRET exists:', !!process.env.SESSION_SECRET);
+console.log('Session config - SESSION_SECRET length:', process.env.SESSION_SECRET?.length);
+
 export async function getSession(req: NextRequest, res?: NextResponse): Promise<AuthSession> {
   const response = res || new NextResponse();
   return await getIronSession<AuthSession>(req, response, sessionOptions);

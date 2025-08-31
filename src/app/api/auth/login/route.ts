@@ -50,7 +50,9 @@ export async function POST(request: NextRequest) {
       role: user.role,
       created_at: user.created_at,
     };
+    console.log('Setting session user:', session.user.email);
     await session.save?.();
+    console.log('Session saved successfully');
 
     return response;
   } catch (error) {
