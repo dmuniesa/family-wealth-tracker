@@ -140,13 +140,17 @@ export default function AccountsPage() {
                     <div className="flex items-center space-x-2 min-w-0 flex-1">
                       {account.category === 'Banking' ? (
                         <Wallet className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                      ) : (
+                      ) : account.category === 'Investment' ? (
                         <TrendingUp className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <TrendingUp className="h-5 w-5 text-red-600 flex-shrink-0" />
                       )}
                       <span className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${
                         account.category === 'Banking' 
                           ? 'bg-blue-100 text-blue-700'
-                          : 'bg-green-100 text-green-700'
+                          : account.category === 'Investment'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
                       }`}>
                         {t(`categories.${account.category.toLowerCase()}`)}
                       </span>
