@@ -1,7 +1,7 @@
 # Family Wealth Tracker
 
 <div align="center">
-  <img src="public/logo/logotrans.png" alt="Family Wealth Tracker Logo" width="200" />
+  <img src="public/logo/logotrans.png" alt="Family Wealth Tracker Logo" width="400" />
 </div>
 
 ## 🎯 Project Overview
