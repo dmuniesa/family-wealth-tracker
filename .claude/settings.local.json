@@ -21,7 +21,12 @@
       "WebFetch(domain:next-intl.dev)",
       "Bash(powershell:*)",
       "Bash(sqlite3:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(git config:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

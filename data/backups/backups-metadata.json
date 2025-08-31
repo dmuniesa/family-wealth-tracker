@@ -1,0 +1,12 @@
+{
+  "backups": [
+    {
+      "id": "backup-2025-08-31T08-49-10-202Z",
+      "name": "wealth-tracker-2025-08-31T08-49-10-202Z.db",
+      "size": 45056,
+      "created_at": "2025-08-31T08:49:10.207Z",
+      "location": "local",
+      "filePath": "C:\\Users\\djmun\\Dropbox\\Archivos_David\\web_patrimonio\\data\\backups\\wealth-tracker-2025-08-31T08-49-10-202Z.db"
+    }
+  ]
+}

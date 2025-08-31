@@ -88,12 +88,19 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Family Management**: Share Family ID for multi-user access
 - **Multilingual Support**: Full interface in English and Spanish
 
+### 5. Backup & Recovery
+- **Manual Backups**: Create database backups on-demand
+- **Scheduled Backups**: Automated backup creation (daily/weekly/monthly)
+- **Cloud Storage**: Automatic upload to Dropbox or Google Drive
+- **Backup Management**: Download, restore, and delete backup files
+- **Secure Storage**: OAuth 2.0 authentication for cloud providers
+
 ## 🎛️ User Interface Requirements
 
 ### Layout
 - Clean, minimalist design using Tailwind CSS + shadcn/ui
 - Responsive design (desktop and mobile friendly)
-- Sidebar navigation with main sections: Dashboard, Accounts, History, Settings
+- Sidebar navigation with main sections: Dashboard, Accounts, History, Backups, Settings
 
 ### Account Identification
 - Display account name prominently
@@ -150,6 +157,9 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Secure Data Handling**: Encrypted IBAN storage with proper input validation
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **Docker Deployment**: Production-ready containerization with Docker Compose
+- **Backup & Recovery System**: Complete backup functionality with cloud storage integration
+- **Scheduled Backups**: Automated backup creation with configurable intervals
+- **Cloud Storage Integration**: OAuth 2.0 authentication for Dropbox and Google Drive
 
 ## 🎯 Success Criteria
 - ✅ Family members can easily identify and manage all account types including debts
@@ -174,7 +184,7 @@ npm install
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your encryption keys
+# Edit .env with your encryption keys and OAuth credentials (optional for cloud backups)
 
 # Start development server
 npm run dev
@@ -189,6 +199,38 @@ npm run docker:up
 open http://localhost:3000
 ```
 
+## 🔧 Configuration
+
+### Environment Variables
+Required variables in `.env`:
+```bash
+# Core Configuration
+DATABASE_PATH=./data/wealth_tracker.db
+ENCRYPTION_KEY=your-32-char-encryption-key-here
+SESSION_SECRET=your-32-char-session-secret-here
+
+# Optional: Cloud Storage (for backup feature)
+DROPBOX_CLIENT_ID=your-dropbox-client-id
+DROPBOX_CLIENT_SECRET=your-dropbox-client-secret
+GOOGLE_DRIVE_CLIENT_ID=your-google-drive-client-id
+GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
+```
+
+### Cloud Storage Setup (Optional)
+To enable automatic backup uploads:
+
+**Dropbox**:
+1. Create app at [Dropbox Developers](https://www.dropbox.com/developers/apps)
+2. Add redirect URI: `https://your-domain.com/api/auth/dropbox/callback`
+3. Add client ID and secret to environment variables
+
+**Google Drive**:
+1. Create project at [Google Console](https://console.developers.google.com)
+2. Enable Google Drive API
+3. Create OAuth 2.0 credentials
+4. Add redirect URI: `https://your-domain.com/api/auth/google-drive/callback`
+5. Add client ID and secret to environment variables
+
 ## 📋 Future Enhancements
 - Email notifications for balance updates
 - Budget tracking and debt payment goals
@@ -198,6 +240,7 @@ open http://localhost:3000
 - Expense categorization and cash flow analysis
 - Advanced financial reports and debt-to-income ratios
 - Debt amortization schedules and payment tracking
+- Backup encryption and versioning
 
 ---
 

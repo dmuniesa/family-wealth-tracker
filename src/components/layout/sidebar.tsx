@@ -13,7 +13,8 @@ import {
   LogOut,
   Users,
   Menu,
-  X
+  X,
+  Shield
 } from "lucide-react"
 import { useTranslations, useLocale } from 'next-intl'
 import type { User } from "@/types"
@@ -49,6 +50,11 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
       name: t('navigation.history'),
       href: `/${locale}/history`,
       icon: History,
+    },
+    {
+      name: t('navigation.backups'),
+      href: `/${locale}/backups`,
+      icon: Shield,
     },
     {
       name: t('navigation.settings'),
