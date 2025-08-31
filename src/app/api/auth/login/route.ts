@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         family_id: user.family_id,
+        role: user.role,
         created_at: user.created_at,
       },
     });
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       name: user.name,
       family_id: user.family_id,
+      role: user.role,
       created_at: user.created_at,
     };
     await session.save?.();

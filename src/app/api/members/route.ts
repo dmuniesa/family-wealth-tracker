@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
       id: member.id,
       name: member.name,
       email: member.email,
+      role: member.role,
       created_at: member.created_at
     }))
 

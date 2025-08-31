@@ -102,6 +102,15 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Member Statistics**: Display total family member count and status indicators
 - **User Identification**: Clear marking of current user in member listings
 
+### 7. User Roles & Permissions
+- **Three Role Levels**: Administrator, User, and Guest with distinct permission sets
+- **Role Management**: Administrators can assign and change user roles for family members
+- **Permission-Based Access**: Role-specific access to features and administrative functions
+- **Administrator Privileges**: Full system access, user management, backup controls, and registration settings
+- **User Permissions**: Standard access to financial data and personal account management
+- **Guest Restrictions**: Limited read-only access with restricted functionality
+- **Secure Role Assignment**: Users cannot modify their own roles, preventing privilege escalation
+
 ## 🎛️ User Interface Requirements
 
 ### Layout
@@ -170,6 +179,10 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Family Member Management**: Complete member administration with registration controls
 - **Dynamic Registration Settings**: Toggle new user registration on/off for family access control
 - **Member Administration**: View, manage, and remove family members with proper safeguards
+- **Role-Based Access Control**: Three-tier permission system with Administrator, User, and Guest roles
+- **Permission Management**: Administrators can assign and modify user roles with proper restrictions
+- **Feature-Level Security**: Role-based access to backups, user management, and system settings
+- **Copy Confirmation Feedback**: Visual confirmation when copying Family ID to clipboard
 
 ## 🎯 Success Criteria
 - ✅ Family members can easily identify and manage all account types including debts

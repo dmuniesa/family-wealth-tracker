@@ -1,8 +1,11 @@
+export type UserRole = 'administrator' | 'user' | 'guest';
+
 export interface User {
   id: number;
   email: string;
   name: string;
   family_id: number;
+  role: UserRole;
   created_at: string;
   password_hash?: string; // Only present in database operations
 }

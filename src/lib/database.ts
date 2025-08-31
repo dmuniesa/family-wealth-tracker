@@ -47,6 +47,7 @@ async function initializeDatabase(db: Database) {
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
       family_id INTEGER NOT NULL,
+      role TEXT CHECK(role IN ('administrator', 'user', 'guest')) DEFAULT 'user',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `;
@@ -124,6 +125,10 @@ async function initializeDatabase(db: Database) {
   `;
 
   await db.run(createUsersTable);
+  
+  // Migrate existing users table to add role column
+  await migrateUsersTableForRoles(db);
+  
   await db.run(createAccountsTable);
   await db.run(createBalancesTable);
 
@@ -139,4 +144,42 @@ async function initializeDatabase(db: Database) {
   await db.run(`
     CREATE INDEX IF NOT EXISTS idx_balances_date ON balances(date)
   `);
+  
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)
+  `);
+}
+
+async function migrateUsersTableForRoles(db: Database) {
+  try {
+    // Check if role column exists
+    const tableInfo = await db.all(`
+      PRAGMA table_info(users)
+    `) as any[];
+    
+    const hasRoleColumn = tableInfo.some(column => column.name === 'role');
+    
+    if (!hasRoleColumn) {
+      console.log('Adding role column to users table...');
+      
+      await db.run('BEGIN TRANSACTION');
+      
+      // Add role column with default value
+      await db.run(`
+        ALTER TABLE users ADD COLUMN role TEXT CHECK(role IN ('administrator', 'user', 'guest')) DEFAULT 'user'
+      `);
+      
+      // Set all existing users as administrators
+      await db.run(`
+        UPDATE users SET role = 'administrator' WHERE role IS NULL OR role = 'user'
+      `);
+      
+      await db.run('COMMIT');
+      console.log('Successfully migrated users table with role column');
+    }
+  } catch (error) {
+    await db.run('ROLLBACK');
+    console.error('Error migrating users table for roles:', error);
+    throw error;
+  }
 }

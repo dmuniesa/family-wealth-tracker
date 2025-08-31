@@ -1,7 +1,7 @@
 {
   "frequency": "daily",
-  "time": "02:00",
+  "time": "03:00",
   "enabled": true,
   "maxBackups": 10,
-  "nextRun": "2025-09-01T00:00:00.000Z"
+  "nextRun": "2025-09-01T01:00:00.000Z"
 }

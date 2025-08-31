@@ -126,7 +126,6 @@ export class BackupScheduler {
         break
       case 'monthly':
         nextRun.setDate(1)
-        nextRun.setMonth(nextRun.getMonth() + 1)
         if (nextRun <= now) {
           nextRun.setMonth(nextRun.getMonth() + 1)
         }

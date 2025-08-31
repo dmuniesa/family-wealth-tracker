@@ -35,8 +35,13 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(password);
     const finalFamilyId = familyId || generateFamilyId();
+    
+    // New users are created as 'user' role by default
+    // First user in a new family becomes administrator  
+    const isFirstUser = !familyId || !(await UserService.familyExists(finalFamilyId));
+    const userRole = isFirstUser ? 'administrator' : 'user';
 
-    const userId = await UserService.createUser(email, passwordHash, name, finalFamilyId);
+    const userId = await UserService.createUser(email, passwordHash, name, finalFamilyId, userRole);
 
     return NextResponse.json({
       message: 'User created successfully',

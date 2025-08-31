@@ -1,13 +1,13 @@
 import { getDatabase } from './database';
 import { encryptIBAN, decryptIBAN } from './encryption';
-import type { User, Account, Balance, AccountWithBalance } from '@/types';
+import type { User, Account, Balance, AccountWithBalance, UserRole } from '@/types';
 
 export class UserService {
-  static async createUser(email: string, passwordHash: string, name: string, familyId: number): Promise<number> {
+  static async createUser(email: string, passwordHash: string, name: string, familyId: number, role: UserRole = 'user'): Promise<number> {
     const db = await getDatabase();
     const result = await db.run(
-      'INSERT INTO users (email, password_hash, name, family_id) VALUES (?, ?, ?, ?)',
-      [email, passwordHash, name, familyId]
+      'INSERT INTO users (email, password_hash, name, family_id, role) VALUES (?, ?, ?, ?, ?)',
+      [email, passwordHash, name, familyId, role]
     );
     return result.lastID;
   }
@@ -49,9 +49,31 @@ export class UserService {
     );
   }
 
+  static async updateUserRole(userId: number, role: UserRole): Promise<void> {
+    const db = await getDatabase();
+    await db.run(
+      'UPDATE users SET role = ? WHERE id = ?',
+      [role, userId]
+    );
+  }
+
   static async deleteUser(userId: number): Promise<void> {
     const db = await getDatabase();
     await db.run('DELETE FROM users WHERE id = ?', [userId]);
+  }
+
+  static async getUsersByRole(familyId: number, role: UserRole): Promise<User[]> {
+    const db = await getDatabase();
+    return await db.all(
+      'SELECT * FROM users WHERE family_id = ? AND role = ?',
+      [familyId, role]
+    ) as User[];
+  }
+
+  static async isUserAdmin(userId: number): Promise<boolean> {
+    const db = await getDatabase();
+    const user = await db.get('SELECT role FROM users WHERE id = ?', [userId]) as User | null;
+    return user?.role === 'administrator';
   }
 }
 

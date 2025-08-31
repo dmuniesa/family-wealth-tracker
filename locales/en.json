@@ -114,7 +114,9 @@
     "accountNotFound": "Account not found",
     "invalidAmount": "Invalid amount value",
     "invalidDate": "Invalid date format",
-    "csvExample": "Example: My Bank Account, 1500.50, 2024-01-15"
+    "csvExample": "Example: My Bank Account, 1500.50, 2024-01-15",
+    "familyIdCopied": "Family ID copied to clipboard!",
+    "failedToCopy": "Failed to copy Family ID"
   },
   "auth": {
     "login": "Sign In",
@@ -252,6 +254,19 @@
     "removeUserConfirm": "Are you sure you want to remove this user from the family?",
     "userRemoved": "User removed successfully",
     "cannotRemoveSelf": "You cannot remove yourself",
-    "loading": "Loading members..."
+    "loading": "Loading members...",
+    "memberRole": "Role",
+    "changeRole": "Change Role",
+    "roleChanged": "User role updated successfully",
+    "cannotChangeOwnRole": "You cannot change your own role",
+    "insufficientPermissions": "You don't have permission to perform this action"
+  },
+  "roles": {
+    "administrator": "Administrator",
+    "user": "User", 
+    "guest": "Guest",
+    "administratorDescription": "Full access to all features and settings",
+    "userDescription": "Standard access to financial data and personal settings",
+    "guestDescription": "Limited read-only access to family data"
   }
 }

@@ -35,6 +35,8 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
   const isMobileMenuOpen = externalMobileMenuOpen ?? internalMobileMenuOpen
   const setIsMobileMenuOpen = externalSetMobileMenuOpen ?? setInternalMobileMenuOpen
   
+  const isAdmin = user?.role === 'administrator'
+  
   const navigation = [
     {
       name: t('navigation.dashboard'),
@@ -51,11 +53,11 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
       href: `/${locale}/history`,
       icon: History,
     },
-    {
+    ...(isAdmin ? [{
       name: t('navigation.backups'),
       href: `/${locale}/backups`,
       icon: Shield,
-    },
+    }] : []),
     {
       name: t('navigation.members'),
       href: `/${locale}/members`,

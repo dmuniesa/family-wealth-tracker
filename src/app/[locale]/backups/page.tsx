@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { AuthGuard } from "@/components/auth/auth-guard"
+import { AdminGuard } from "@/components/auth/admin-guard"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -66,7 +67,6 @@ export default function BackupsPage() {
         const data = await response.json()
         setBackups(data.backups || [])
         setLastBackup(data.lastBackup)
-        setNextScheduled(data.nextScheduled)
       }
     } catch (error) {
       console.error('Failed to fetch backups:', error)
@@ -167,7 +167,7 @@ export default function BackupsPage() {
       if (response.ok) {
         setScheduleFrequency(frequency)
         setScheduleTime(timeToUse)
-        await fetchSchedule() // Fetch updated schedule info including nextRun
+        await fetchBackupSettings() // Fetch updated schedule info including nextRun
       }
     } catch (error) {
       console.error('Failed to update schedule:', error)
@@ -261,7 +261,8 @@ export default function BackupsPage() {
 
   return (
     <AuthGuard>
-      <MainLayout>
+      <AdminGuard>
+        <MainLayout>
         <div className="space-y-6 sm:space-y-8">
           <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
             <div>
@@ -536,6 +537,7 @@ export default function BackupsPage() {
           </Card>
         </div>
       </MainLayout>
+      </AdminGuard>
     </AuthGuard>
   )
 }

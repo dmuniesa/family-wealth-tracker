@@ -28,6 +28,7 @@ export default function SettingsPage() {
   const [newFamilyId, setNewFamilyId] = useState("")
   const [isChangingFamily, setIsChangingFamily] = useState(false)
   const [familyChangeMessage, setFamilyChangeMessage] = useState<string | null>(null)
+  const [copyMessage, setCopyMessage] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isImporting, setIsImporting] = useState(false)
   const [importMessage, setImportMessage] = useState<string | null>(null)
@@ -90,10 +91,13 @@ export default function SettingsPage() {
     if (user?.family_id) {
       try {
         await navigator.clipboard.writeText(user.family_id.toString())
-        // You could add a toast notification here if you have one
-        console.log('Family ID copied to clipboard')
+        setCopyMessage(t('settings.familyIdCopied'))
+        // Clear the message after 2 seconds
+        setTimeout(() => setCopyMessage(null), 2000)
       } catch (error) {
         console.error('Failed to copy Family ID:', error)
+        setCopyMessage(t('settings.failedToCopy'))
+        setTimeout(() => setCopyMessage(null), 3000)
       }
     }
   }
@@ -312,6 +316,11 @@ export default function SettingsPage() {
                   </Button>
                 )}
               </div>
+              {copyMessage && (
+                <div className="mt-2 text-sm text-green-600 font-medium">
+                  {copyMessage}
+                </div>
+              )}
             </CardContent>
           </Card>
 

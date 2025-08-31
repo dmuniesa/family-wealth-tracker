@@ -114,7 +114,9 @@
     "accountNotFound": "Cuenta no encontrada",
     "invalidAmount": "Valor de cantidad inválido",
     "invalidDate": "Formato de fecha inválido",
-    "csvExample": "Ejemplo: Mi Cuenta Bancaria, 1500.50, 2024-01-15"
+    "csvExample": "Ejemplo: Mi Cuenta Bancaria, 1500.50, 2024-01-15",
+    "familyIdCopied": "¡ID de Familia copiado al portapapeles!",
+    "failedToCopy": "Error al copiar el ID de Familia"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -252,6 +254,19 @@
     "removeUserConfirm": "¿Estás seguro de que quieres eliminar este usuario de la familia?",
     "userRemoved": "Usuario eliminado exitosamente",
     "cannotRemoveSelf": "No puedes eliminarte a ti mismo",
-    "loading": "Cargando miembros..."
+    "loading": "Cargando miembros...",
+    "memberRole": "Rol",
+    "changeRole": "Cambiar Rol",
+    "roleChanged": "Rol del usuario actualizado exitosamente",
+    "cannotChangeOwnRole": "No puedes cambiar tu propio rol",
+    "insufficientPermissions": "No tienes permisos para realizar esta acción"
+  },
+  "roles": {
+    "administrator": "Administrador",
+    "user": "Usuario",
+    "guest": "Invitado",
+    "administratorDescription": "Acceso completo a todas las funciones y configuraciones",
+    "userDescription": "Acceso estándar a datos financieros y configuración personal",
+    "guestDescription": "Acceso limitado de solo lectura a los datos familiares"
   }
 }

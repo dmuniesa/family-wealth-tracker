@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { SettingsService } from '@/lib/settings-service'
+import { canToggleRegistration } from '@/lib/permissions'
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,6 +24,13 @@ export async function PUT(request: NextRequest) {
     const session = await getSession(request)
     if (!session.user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Check if user has permission to toggle registration
+    if (!canToggleRegistration(session.user)) {
+      return NextResponse.json({ 
+        error: 'Insufficient permissions to modify registration settings' 
+      }, { status: 403 })
     }
 
     const { enabled } = await request.json()

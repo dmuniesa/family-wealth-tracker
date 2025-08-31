@@ -10,14 +10,21 @@ import {
   UserCheck, 
   UserX, 
   Trash2,
-  Clock
+  Clock,
+  Settings,
+  Shield,
+  User,
+  Eye
 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslations } from 'next-intl'
+import type { UserRole } from '@/types'
 
 interface FamilyMember {
   id: number
   name: string
   email: string
+  role: UserRole
   created_at: string
 }
 
@@ -31,6 +38,8 @@ export default function MembersPage() {
   const [loading, setLoading] = useState(true)
   const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>('user')
+  const [updatingRoles, setUpdatingRoles] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     fetchMembers()
@@ -70,6 +79,7 @@ export default function MembersPage() {
       if (response.ok) {
         const data = await response.json()
         setCurrentUserId(data.user?.id)
+        setCurrentUserRole(data.user?.role || 'user')
       }
     } catch (error) {
       console.error('Failed to fetch current user:', error)
@@ -114,6 +124,71 @@ export default function MembersPage() {
       console.error('Failed to remove member:', error)
     }
   }
+
+  const updateUserRole = async (memberId: number, newRole: UserRole) => {
+    if (memberId === currentUserId) {
+      alert(t('members.cannotChangeOwnRole'))
+      return
+    }
+
+    setUpdatingRoles(prev => new Set(prev).add(memberId))
+
+    try {
+      const response = await fetch(`/api/members/${memberId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: newRole }),
+      })
+
+      if (response.ok) {
+        await fetchMembers()
+        // Show success message - could use a toast library here
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to update user role')
+      }
+    } catch (error) {
+      console.error('Failed to update user role:', error)
+      alert('Failed to update user role')
+    } finally {
+      setUpdatingRoles(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(memberId)
+        return newSet
+      })
+    }
+  }
+
+  const getRoleIcon = (role: UserRole) => {
+    switch (role) {
+      case 'administrator':
+        return <Shield className="h-4 w-4 text-red-600" />
+      case 'user':
+        return <User className="h-4 w-4 text-blue-600" />
+      case 'guest':
+        return <Eye className="h-4 w-4 text-gray-600" />
+      default:
+        return <User className="h-4 w-4 text-gray-600" />
+    }
+  }
+
+  const getRoleColor = (role: UserRole) => {
+    switch (role) {
+      case 'administrator':
+        return 'bg-red-100 text-red-800'
+      case 'user':
+        return 'bg-blue-100 text-blue-800'
+      case 'guest':
+        return 'bg-gray-100 text-gray-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const canManageRoles = currentUserRole === 'administrator'
+  const canToggleRegistration = currentUserRole === 'administrator'
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()
@@ -172,10 +247,16 @@ export default function MembersPage() {
                   size="sm"
                   variant={registrationEnabled ? "destructive" : "default"}
                   onClick={toggleRegistration}
+                  disabled={!canToggleRegistration}
                   className="mt-2"
                 >
                   {registrationEnabled ? t('members.disableRegistration') : t('members.enableRegistration')}
                 </Button>
+                {!canToggleRegistration && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t('members.insufficientPermissions')}
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -205,6 +286,9 @@ export default function MembersPage() {
                           {t('members.memberEmail')}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {t('members.memberRole')}
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           {t('members.memberJoined')}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -228,21 +312,52 @@ export default function MembersPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div className="flex items-center space-x-2">
+                              {getRoleIcon(member.role)}
+                              {canManageRoles && member.id !== currentUserId ? (
+                                <Select
+                                  value={member.role}
+                                  onValueChange={(newRole) => updateUserRole(member.id, newRole as UserRole)}
+                                  disabled={updatingRoles.has(member.id)}
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="administrator">{t('roles.administrator')}</SelectItem>
+                                    <SelectItem value="user">{t('roles.user')}</SelectItem>
+                                    <SelectItem value="guest">{t('roles.guest')}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
+                                  {t(`roles.${member.role}`)}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div className="flex items-center space-x-2">
                               <Clock className="h-4 w-4 text-gray-400" />
                               <span>{formatDate(member.created_at)}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {member.id !== currentUserId && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => removeMember(member.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <div className="flex items-center space-x-2">
+                              {canManageRoles && member.id !== currentUserId && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => removeMember(member.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  disabled={updatingRoles.has(member.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {updatingRoles.has(member.id) && (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
