@@ -13,7 +13,7 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 export const sessionOptions = {
-  password: process.env.SESSION_SECRET || "default-dev-secret-32-chars-long!!",
+  password: (process.env.SESSION_SECRET || "default-dev-secret-32-chars-long!!").substring(0, 32),
   cookieName: "wealth-tracker-session",
   cookieOptions: {
     secure: process.env.NODE_ENV === "production",
