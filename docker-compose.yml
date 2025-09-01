@@ -6,9 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: family-wealth-tracker
-    # Port 3000 is now internal only - nginx handles external traffic
-    expose:
-      - "3000"
+    # Port 3000 exposed for Cloudflare Tunnel, nginx handles HTTPS traffic
+    ports:
+      - "3000:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/wealth_tracker.db
