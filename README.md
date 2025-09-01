@@ -39,6 +39,16 @@ A comprehensive web application for family wealth tracking where multiple users 
 - notes (Optional text field)
 - created_at
 - updated_at
+-- Debt Amortization Fields (for Debt category accounts)
+- apr_rate (Annual Percentage Rate as decimal)
+- monthly_payment (Fixed monthly payment amount)
+- loan_term_months (Original loan term)
+- remaining_months (Months remaining to pay)
+- payment_type (ENUM: "fixed", "interest_only")
+- auto_update_enabled (Boolean for automatic updates)
+- last_auto_update (Date of last automatic update)
+- original_balance (Original loan amount)
+- loan_start_date (When the loan started)
 ```
 
 ### Balances Table
@@ -49,6 +59,12 @@ A comprehensive web application for family wealth tracking where multiple users 
 - date (Date of balance record)
 - created_at
 - updated_at
+-- Payment Tracking Fields
+- balance_type (ENUM: "manual", "automatic", "payment")
+- interest_amount (Interest portion of payment/update)
+- principal_amount (Principal portion of payment)
+- payment_amount (Total payment amount)
+- notes (Transaction description)
 ```
 
 ## 🔐 User Authentication & Authorization
@@ -105,6 +121,23 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Member Removal**: Remove family members (except current user) with confirmation
 - **Member Statistics**: Display total family member count and status indicators
 - **User Identification**: Clear marking of current user in member listings
+
+### 8. Weekly Email Reports
+- **Automated Reports**: Weekly financial summaries sent via email with configurable scheduling
+- **SMTP Configuration**: Admin-level email server setup with connection testing
+- **Report Customization**: Choose day, time, timezone, and include charts in reports
+- **Notification History**: Track all sent reports with success/failure status
+- **User Preferences**: Individual opt-in/opt-out for weekly report subscriptions
+- **Multi-language Support**: Email templates available in English and Spanish
+
+### 9. Debt Amortization & Payment Tracking
+- **Loan Configuration**: Set up APR rate (TAE), payment amounts, and loan terms for debt accounts
+- **Automatic Updates**: Monthly interest application on the 1st of each month (optional per debt)
+- **Payment Methods**: Support for French method (fixed payments) and interest-only loans
+- **Payment Recording**: Track manual payments with automatic principal/interest breakdown
+- **Amortization Schedules**: Generate complete payment schedules showing remaining balance over time
+- **Progress Tracking**: Monitor remaining months to payoff and total interest calculations
+- **Payment History**: Detailed transaction history distinguishing between automatic updates, manual entries, and payments
 
 ### 7. User Roles & Permissions
 - **Three Role Levels**: Administrator, User, and Guest with distinct permission sets
@@ -187,6 +220,10 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Permission Management**: Administrators can assign and modify user roles with proper restrictions
 - **Feature-Level Security**: Role-based access to backups, user management, and system settings
 - **Copy Confirmation Feedback**: Visual confirmation when copying Family ID to clipboard
+- **Weekly Email Notifications**: Automated weekly financial reports sent via email with customizable scheduling
+- **Email Configuration**: SMTP setup with test functionality and notification history tracking
+- **Debt Amortization System**: Advanced loan tracking with automatic monthly interest application
+- **Payment Scheduling**: French method and interest-only payment calculations with full amortization schedules
 
 ## 🎯 Success Criteria
 - ✅ Family members can easily identify and manage all account types including debts
@@ -208,7 +245,7 @@ For detailed setup and deployment guides, see the [documentation directory](docs
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd web_patrimonio
+cd family-wealth-track
 
 # Install dependencies
 npm install
@@ -240,6 +277,12 @@ DATABASE_PATH=./data/wealth_tracker.db
 ENCRYPTION_KEY=your-32-char-encryption-key-here
 SESSION_SECRET=your-32-char-session-secret-here
 
+# Optional: Email Notifications (for weekly reports)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
 # Optional: Cloud Storage (for backup feature)
 DROPBOX_CLIENT_ID=your-dropbox-client-id
 DROPBOX_CLIENT_SECRET=your-dropbox-client-secret
@@ -263,15 +306,16 @@ To enable automatic backup uploads:
 5. Add client ID and secret to environment variables
 
 ## 📋 Future Enhancements
-- Email notifications for balance updates
-- Budget tracking and debt payment goals
+- Budget tracking and financial goals
 - Multi-currency conversion with real-time rates
 - Mobile app companion
 - Automated bank integration (API)
 - Expense categorization and cash flow analysis
 - Advanced financial reports and debt-to-income ratios
-- Debt amortization schedules and payment tracking
 - Backup encryption and versioning
+- Investment portfolio analysis
+- Cash flow projections and financial planning
+- Integration with external financial services
 
 ---
 

@@ -23,7 +23,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form"
+import { Checkbox } from "@/components/ui/checkbox"
 import { ibanSchema, optionalIbanSchema, currencySchema } from "@/lib/validation"
 
 // Create schema function to accept translated messages
@@ -33,6 +35,14 @@ const createAccountSchema = (t: any, category?: string) => z.object({
   currency: currencySchema,
   iban: category === 'Debt' ? optionalIbanSchema : ibanSchema,
   notes: z.string().optional(),
+  // Debt amortization fields
+  aprRate: z.number().min(0).max(1).optional(),
+  monthlyPayment: z.number().min(0).optional(),
+  loanTermMonths: z.number().min(1).optional(),
+  paymentType: z.enum(["fixed", "interest_only"]).optional(),
+  autoUpdateEnabled: z.boolean().optional(),
+  originalBalance: z.number().min(0).optional(),
+  loanStartDate: z.string().optional(),
 })
 
 type AccountFormValues = {
@@ -41,6 +51,14 @@ type AccountFormValues = {
   currency: "EUR" | "USD" | "GBP" | "CHF" | "JPY" | "CAD" | "AUD"
   iban?: string
   notes?: string
+  // Debt amortization fields
+  aprRate?: number
+  monthlyPayment?: number
+  loanTermMonths?: number
+  paymentType?: "fixed" | "interest_only"
+  autoUpdateEnabled?: boolean
+  originalBalance?: number
+  loanStartDate?: string
 }
 
 interface AccountFormProps {
@@ -62,6 +80,14 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
       currency: initialData?.currency || "EUR",
       iban: initialData?.iban || "",
       notes: initialData?.notes || "",
+      // Debt amortization defaults
+      aprRate: (initialData as any)?.apr_rate || undefined,
+      monthlyPayment: (initialData as any)?.monthly_payment || undefined,
+      loanTermMonths: (initialData as any)?.loan_term_months || undefined,
+      paymentType: (initialData as any)?.payment_type || "fixed",
+      autoUpdateEnabled: (initialData as any)?.auto_update_enabled || false,
+      originalBalance: (initialData as any)?.original_balance || undefined,
+      loanStartDate: (initialData as any)?.loan_start_date || "",
     },
   })
 
@@ -209,6 +235,160 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
                 </FormItem>
               )}
             />
+
+            {watchedCategory === 'Debt' && (
+              <div className="space-y-4 pt-4 border-t">
+                <div className="text-sm font-medium text-muted-foreground">
+                  {t('debt.amortizationSettings')}
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="aprRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('debt.aprRate')}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.001"
+                          min="0"
+                          max="1"
+                          placeholder="0.05" 
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>{t('debt.aprRateDescription')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="originalBalance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('debt.originalBalance')}</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            min="0"
+                            placeholder="10000.00" 
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="loanTermMonths"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('debt.loanTermMonths')}</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="1"
+                            placeholder="360" 
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="monthlyPayment"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('debt.monthlyPayment')}</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            min="0"
+                            placeholder="500.00" 
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          />
+                        </FormControl>
+                        <FormDescription>{t('debt.monthlyPaymentDescription')}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="loanStartDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('debt.loanStartDate')}</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="paymentType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('debt.paymentType')}</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('debt.selectPaymentType')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="fixed">{t('debt.fixedPayment')}</SelectItem>
+                          <SelectItem value="interest_only">{t('debt.interestOnly')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>{t('debt.paymentTypeDescription')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="autoUpdateEnabled"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>{t('debt.autoUpdateEnabled')}</FormLabel>
+                        <FormDescription>{t('debt.autoUpdateDescription')}</FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             {error && (
               <div className="text-sm text-destructive bg-destructive/10 p-3 rounded">

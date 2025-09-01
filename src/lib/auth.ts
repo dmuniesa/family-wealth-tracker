@@ -28,12 +28,6 @@ export const sessionOptions = {
   },
 };
 
-// Debug: Session configuration
-if (process.env.NODE_ENV === 'development') {
-  console.log('Session config - NODE_ENV:', process.env.NODE_ENV);
-  console.log('Session config - SESSION_SECRET length:', process.env.SESSION_SECRET?.length);
-  console.log('Session config - Using password length:', (process.env.SESSION_SECRET || "default-dev-secret-32-chars-long!!").substring(0, 32).length);
-}
 
 export async function getSession(req: NextRequest, res?: NextResponse): Promise<AuthSession> {
   const response = res || new NextResponse();

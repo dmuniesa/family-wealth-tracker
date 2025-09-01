@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>New Features Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        button { padding: 8px 16px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 New Features Testing Tool</h1>
+    <p><strong>Instructions:</strong> Make sure you're logged in as an administrator in another tab first!</p>
+
+    <div class="test-section">
+        <h2>📧 Email Notifications Test</h2>
+        <button onclick="testEmailConfig()">Test Email Config API</button>
+        <button onclick="testNotificationHistory()">Test Notification History</button>
+        <div id="email-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>💰 Debt Amortization Test</h2>
+        <button onclick="createTestDebtAccount()">Create Test Debt Account</button>
+        <button onclick="testAmortizationCalculations()">Test Calculations</button>
+        <button onclick="testPaymentRecording()">Record Test Payment</button>
+        <div id="debt-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Dashboard Integration Test</h2>
+        <button onclick="testDashboard()">Test Dashboard Data</button>
+        <div id="dashboard-results"></div>
+    </div>
+
+    <script>
+        let testDebtAccountId = null;
+
+        function showResult(containerId, html) {
+            document.getElementById(containerId).innerHTML = html;
+        }
+
+        function formatResponse(response, data) {
+            return `<pre>Status: ${response.status}\nData: ${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        async function testEmailConfig() {
+            try {
+                // Test GET config
+                const getResponse = await fetch('/api/admin/notifications/config');
+                const getData = await getResponse.json();
+                
+                let result = `<div class="result ${getResponse.ok ? 'success' : 'error'}">
+                    <strong>GET Config:</strong> ${getResponse.ok ? '✅ Success' : '❌ Failed'}
+                    ${formatResponse(getResponse, getData)}
+                </div>`;
+
+                // Test POST config
+                const configData = {
+                    smtpHost: 'smtp.gmail.com',
+                    smtpPort: 587,
+                    smtpUser: 'test@example.com',
+                    smtpPass: 'testpass',
+                    enabled: true,
+                    day: 'sunday',
+                    time: '09:00',
+                    timezone: 'UTC',
+                    includeCharts: false
+                };
+
+                const postResponse = await fetch('/api/admin/notifications/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(configData)
+                });
+                const postData = await postResponse.json();
+
+                result += `<div class="result ${postResponse.ok ? 'success' : 'error'}">
+                    <strong>POST Config:</strong> ${postResponse.ok ? '✅ Success' : '❌ Failed'}
+                    ${formatResponse(postResponse, postData)}
+                </div>`;
+
+                showResult('email-results', result);
+            } catch (error) {
+                showResult('email-results', `<div class="result error"><strong>Error:</strong> ${error.message}</div>`);
+            }
+        }
+
+        async function testNotificationHistory() {
+            try {
+                const response = await fetch('/api/admin/notifications/history');
+                const data = await response.json();
+                
+                const result = `<div class="result ${response.ok ? 'success' : 'error'}">
+                    <strong>Notification History:</strong> ${response.ok ? '✅ Success' : '❌ Failed'}
+                    ${formatResponse(response, data)}
+                </div>`;
+                
+                showResult('email-results', result);
+            } catch (error) {
+                showResult('email-results', `<div class="result error"><strong>Error:</strong> ${error.message}</div>`);
+            }
+        }
+
+        async function createTestDebtAccount() {
+            try {
+                const debtAccount = {
+                    name: 'HTML Test Mortgage',
+                    category: 'Debt',
+                    currency: 'EUR',
+                    notes: 'Created via HTML test tool',
+                    aprRate: 0.04, // 4% APR
+                    originalBalance: 200000, // €200,000
+                    loanTermMonths: 240, // 20 years
+                    monthlyPayment: 1200,
+                    paymentType: 'fixed',
+                    autoUpdateEnabled: true,
+                    loanStartDate: '2024-01-01'
+                };
+
+                const response = await fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(debtAccount)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.accountId) {
+                    testDebtAccountId = data.accountId;
+                }
+                
+                const result = `<div class="result ${response.ok ? 'success' : 'error'}">
+                    <strong>Create Debt Account:</strong> ${response.ok ? '✅ Success' : '❌ Failed'}
+                    ${response.ok ? `Account ID: ${data.accountId}` : ''}
+                    ${formatResponse(response, data)}
+                </div>`;
+                
+                showResult('debt-results', result);
+            } catch (error) {
+                showResult('debt-results', `<div class="result error"><strong>Error:</strong> ${error.message}</div>`);
+            }
+        }
+
+        async function testAmortizationCalculations() {
+            if (!testDebtAccountId) {
+                showResult('debt-results', `<div class="result error"><strong>Error:</strong> Please create a debt account first!</div>`);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/accounts/${testDebtAccountId}/amortization`);
+                const data = await response.json();
+                
+                let result = `<div class="result ${response.ok ? 'success' : 'error'}">
+                    <strong>Amortization Schedule:</strong> ${response.ok ? '✅ Success' : '❌ Failed'}`;
+                
+                if (response.ok && data.schedule) {
+                    const schedule = data.schedule;
+                    result += `
+                    <br><strong>Calculations Summary:</strong>
+                    <br>• Total Payments: ${schedule.payments.length}
+                    <br>• Monthly Payment: €${schedule.monthlyPayment.toFixed(2)}
+                    <br>• Total Interest: €${schedule.totalInterest.toFixed(2)}
+                    <br>• Current Balance: €${schedule.currentBalance.toFixed(2)}
+                    <br>• APR: ${(schedule.aprRate * 100).toFixed(2)}%
+                    
+                    <br><br><strong>First Payment Breakdown:</strong>
+                    <br>• Principal: €${schedule.payments[0].principalPayment.toFixed(2)}
+                    <br>• Interest: €${schedule.payments[0].interestPayment.toFixed(2)}
+                    <br>• Remaining: €${schedule.payments[0].remainingBalance.toFixed(2)}`;
+                }
+                
+                result += `${formatResponse(response, data)}</div>`;
+                showResult('debt-results', result);
+            } catch (error) {
+                showResult('debt-results', `<div class="result error"><strong>Error:</strong> ${error.message}</div>`);
+            }
+        }
+
+        async function testPaymentRecording() {
+            if (!testDebtAccountId) {
+                showResult('debt-results', `<div class="result error"><strong>Error:</strong> Please create a debt account first!</div>`);
+                return;
+            }
+
+            try {
+                const paymentData = {
+                    amount: 1200,
+                    date: '2024-02-01',
+                    paymentType: 'mixed',
+                    notes: 'Test payment from HTML tool'
+                };
+
+                const response = await fetch(`/api/accounts/${testDebtAccountId}/payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(paymentData)
+                });
+                
+                const data = await response.json();
+                
+                let result = `<div class="result ${response.ok ? 'success' : 'error'}">
+                    <strong>Record Payment:</strong> ${response.ok ? '✅ Success' : '❌ Failed'}`;
+                
+                if (response.ok) {
+                    result += `
+                    <br><strong>Payment Breakdown:</strong>
+                    <br>• Total Paid: €${data.totalPaid.toFixed(2)}
+                    <br>• Principal: €${data.principalPaid.toFixed(2)}
+                    <br>• Interest: €${data.interestPaid.toFixed(2)}
+                    <br>• New Balance: €${data.newBalance.toFixed(2)}`;
+                }
+                
+                result += `${formatResponse(response, data)}</div>`;
+                showResult('debt-results', result);
+            } catch (error) {
+                showResult('debt-results', `<div class="result error"><strong>Error:</strong> ${error.message}</div>`);
+            }
+        }
+
+        async function testDashboard() {
+            try {
+                const response = await fetch('/api/dashboard');
+                const data = await response.json();
+                
+                let result = `<div class="result ${response.ok ? 'success' : 'error'}">
+                    <strong>Dashboard Data:</strong> ${response.ok ? '✅ Success' : '❌ Failed'}`;
+                
+                if (response.ok) {
+                    result += `
+                    <br><strong>Financial Summary:</strong>
+                    <br>• Total Banking: €${data.total_banking || 0}
+                    <br>• Total Investment: €${data.total_investment || 0}
+                    <br>• Total Debt: €${data.total_debt || 0}
+                    <br>• Net Worth: €${data.net_worth || 0}`;
+                }
+                
+                result += `${formatResponse(response, data)}</div>`;
+                showResult('dashboard-results', result);
+            } catch (error) {
+                showResult('dashboard-results', `<div class="result error"><strong>Error:</strong> ${error.message}</div>`);
+            }
+        }
+    </script>
+</body>
+</html>

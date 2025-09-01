@@ -9,6 +9,14 @@ const createAccountSchema = z.object({
   currency: z.string().min(3).max(3),
   iban: z.string().optional(),
   notes: z.string().optional(),
+  // Debt amortization fields
+  aprRate: z.number().min(0).max(1).optional(),
+  monthlyPayment: z.number().min(0).optional(),
+  loanTermMonths: z.number().min(1).optional(),
+  paymentType: z.enum(['fixed', 'interest_only']).optional(),
+  autoUpdateEnabled: z.boolean().optional(),
+  originalBalance: z.number().min(0).optional(),
+  loanStartDate: z.string().optional(),
 }).refine((data) => {
   if (data.category === 'Debt') {
     return true;
@@ -42,7 +50,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, category, currency, iban, notes } = createAccountSchema.parse(body);
+    const validatedData = createAccountSchema.parse(body);
+    const { 
+      name, category, currency, iban, notes,
+      aprRate, monthlyPayment, loanTermMonths, paymentType, 
+      autoUpdateEnabled, originalBalance, loanStartDate 
+    } = validatedData;
 
     const accountId = await AccountService.createAccount(
       session.user.family_id,
@@ -50,7 +63,17 @@ export async function POST(request: NextRequest) {
       category,
       currency,
       iban,
-      notes
+      notes,
+      // Pass amortization data
+      {
+        aprRate,
+        monthlyPayment,
+        loanTermMonths,
+        paymentType,
+        autoUpdateEnabled,
+        originalBalance,
+        loanStartDate
+      }
     );
 
     return NextResponse.json({ message: 'Account created successfully', accountId });

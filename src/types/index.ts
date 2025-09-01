@@ -8,6 +8,7 @@ export interface User {
   role: UserRole;
   created_at: string;
   password_hash?: string; // Only present in database operations
+  notifications_enabled?: boolean; // Weekly report notifications
 }
 
 export interface Account {
@@ -20,6 +21,16 @@ export interface Account {
   notes?: string;
   created_at: string;
   updated_at: string;
+  // Amortization fields for debt accounts
+  apr_rate?: number; // Annual Percentage Rate (TAE) as decimal (e.g., 0.05 for 5%)
+  monthly_payment?: number; // Fixed monthly payment amount
+  loan_term_months?: number; // Original loan term in months
+  remaining_months?: number; // Remaining months to pay
+  payment_type?: 'fixed' | 'interest_only'; // Payment calculation method
+  auto_update_enabled?: boolean; // Enable automatic monthly updates
+  last_auto_update?: string; // Date of last automatic update
+  original_balance?: number; // Original loan amount
+  loan_start_date?: string; // When the loan started
 }
 
 export interface Balance {

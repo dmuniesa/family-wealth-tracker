@@ -84,16 +84,57 @@ export class AccountService {
     category: 'Banking' | 'Investment' | 'Debt',
     currency: string,
     iban?: string,
-    notes?: string
+    notes?: string,
+    amortizationData?: {
+      aprRate?: number;
+      monthlyPayment?: number;
+      loanTermMonths?: number;
+      paymentType?: 'fixed' | 'interest_only';
+      autoUpdateEnabled?: boolean;
+      originalBalance?: number;
+      loanStartDate?: string;
+    }
   ): Promise<number> {
     const db = await getDatabase();
     const encryptedIban = iban ? encryptIBAN(iban) : '';
     
-    const result = await db.run(
-      'INSERT INTO accounts (family_id, name, category, currency, iban_encrypted, notes) VALUES (?, ?, ?, ?, ?, ?)',
-      [familyId, name, category, currency, encryptedIban, notes]
-    );
-    return result.lastID;
+    if (category === 'Debt' && amortizationData) {
+      // Calculate remaining months if loan start date is provided
+      let remainingMonths = amortizationData.loanTermMonths;
+      if (amortizationData.loanStartDate && amortizationData.loanTermMonths) {
+        const startDate = new Date(amortizationData.loanStartDate);
+        const currentDate = new Date();
+        const monthsElapsed = (currentDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                            (currentDate.getMonth() - startDate.getMonth());
+        remainingMonths = Math.max(0, amortizationData.loanTermMonths - monthsElapsed);
+      }
+
+      const result = await db.run(
+        `INSERT INTO accounts (
+          family_id, name, category, currency, iban_encrypted, notes,
+          apr_rate, monthly_payment, loan_term_months, remaining_months,
+          payment_type, auto_update_enabled, original_balance, loan_start_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          familyId, name, category, currency, encryptedIban, notes,
+          amortizationData.aprRate || null,
+          amortizationData.monthlyPayment || null,
+          amortizationData.loanTermMonths || null,
+          remainingMonths || null,
+          amortizationData.paymentType || 'fixed',
+          amortizationData.autoUpdateEnabled || false,
+          amortizationData.originalBalance || null,
+          amortizationData.loanStartDate || null
+        ]
+      );
+      return result.lastID;
+    } else {
+      const result = await db.run(
+        'INSERT INTO accounts (family_id, name, category, currency, iban_encrypted, notes) VALUES (?, ?, ?, ?, ?, ?)',
+        [familyId, name, category, currency, encryptedIban, notes]
+      );
+      return result.lastID;
+    }
   }
 
   static async getAccountsByFamilyId(familyId: number): Promise<AccountWithBalance[]> {

@@ -12,7 +12,8 @@ import {
   Settings, 
   LogOut,
   Users,
-  Shield
+  Shield,
+  Mail
 } from "lucide-react"
 import { useTranslations, useLocale } from 'next-intl'
 import type { User } from "@/types"
@@ -51,11 +52,18 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
       href: `/${locale}/history`,
       icon: History,
     },
-    ...(isAdmin ? [{
-      name: t('navigation.backups'),
-      href: `/${locale}/backups`,
-      icon: Shield,
-    }] : []),
+    ...(isAdmin ? [
+      {
+        name: t('navigation.backups'),
+        href: `/${locale}/backups`,
+        icon: Shield,
+      },
+      {
+        name: t('navigation.admin'),
+        href: `/${locale}/admin/notifications`,
+        icon: Mail,
+      }
+    ] : []),
     {
       name: t('navigation.members'),
       href: `/${locale}/members`,

@@ -1,8 +1,18 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 
+export interface NotificationSettings {
+  enabled: boolean;
+  day: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+  time: string; // HH:MM format
+  timezone: string;
+  includeCharts: boolean;
+  customMessage?: string;
+}
+
 export interface AppSettings {
-  registrationEnabled: boolean
+  registrationEnabled: boolean;
+  notifications: NotificationSettings;
 }
 
 export class SettingsService {
@@ -10,7 +20,15 @@ export class SettingsService {
 
   static async getSettings(): Promise<AppSettings> {
     const defaultSettings: AppSettings = {
-      registrationEnabled: true
+      registrationEnabled: true,
+      notifications: {
+        enabled: false,
+        day: 'sunday',
+        time: '09:00',
+        timezone: 'UTC',
+        includeCharts: true,
+        customMessage: undefined
+      }
     }
 
     try {
@@ -39,5 +57,21 @@ export class SettingsService {
   static async isRegistrationEnabled(): Promise<boolean> {
     const settings = await this.getSettings()
     return settings.registrationEnabled
+  }
+
+  static async getNotificationSettings(): Promise<NotificationSettings> {
+    const settings = await this.getSettings()
+    return settings.notifications
+  }
+
+  static async updateNotificationSettings(notifications: Partial<NotificationSettings>): Promise<void> {
+    const currentSettings = await this.getSettings()
+    const newNotificationSettings = { ...currentSettings.notifications, ...notifications }
+    await this.updateSettings({ notifications: newNotificationSettings })
+  }
+
+  static async isNotificationsEnabled(): Promise<boolean> {
+    const notificationSettings = await this.getNotificationSettings()
+    return notificationSettings.enabled
   }
 }

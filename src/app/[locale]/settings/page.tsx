@@ -6,7 +6,7 @@ import { AuthGuard } from "@/components/auth/auth-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Download, Globe, Copy, Users, Upload, Shield } from "lucide-react"
+import { Download, Globe, Copy, Users, Upload, Shield, Mail } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -14,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter, usePathname } from 'next/navigation'
 import type { User } from "@/types"
@@ -37,6 +39,9 @@ export default function SettingsPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("")
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordChangeMessage, setPasswordChangeMessage] = useState<string | null>(null)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+  const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -45,6 +50,7 @@ export default function SettingsPage() {
         if (response.ok) {
           const data = await response.json()
           setUser(data.user)
+          setNotificationsEnabled(data.user?.notifications_enabled ?? true)
         }
       } catch (error) {
         console.error('Failed to fetch user:', error)
@@ -150,6 +156,38 @@ export default function SettingsPage() {
     const file = event.target.files?.[0]
     setSelectedFile(file || null)
     setImportMessage(null)
+  }
+
+  const handleNotificationToggle = async (enabled: boolean) => {
+    setIsUpdatingNotifications(true)
+    setNotificationMessage(null)
+
+    try {
+      const response = await fetch('/api/users/notification-preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notificationsEnabled: enabled
+        }),
+      })
+
+      if (response.ok) {
+        setNotificationsEnabled(enabled)
+        setNotificationMessage(t('settings.notificationPreferencesUpdated'))
+        // Update user state
+        if (user) {
+          setUser({ ...user, notifications_enabled: enabled })
+        }
+      } else {
+        setNotificationMessage(t('common.error'))
+      }
+    } catch (error) {
+      setNotificationMessage(t('common.error'))
+    } finally {
+      setIsUpdatingNotifications(false)
+    }
   }
 
   const handleImportCsv = async () => {
@@ -419,6 +457,42 @@ export default function SettingsPage() {
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Mail className="mr-2 h-5 w-5" />
+                {t('settings.notifications')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                {t('settings.notificationsDescription')}
+              </p>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="weekly-notifications"
+                  checked={notificationsEnabled}
+                  onCheckedChange={handleNotificationToggle}
+                  disabled={isUpdatingNotifications}
+                />
+                <Label htmlFor="weekly-notifications" className="flex-1">
+                  {t('settings.weeklyReportsEnabled')}
+                </Label>
+              </div>
+              
+              {notificationMessage && (
+                <div className={`text-sm p-3 rounded ${
+                  notificationMessage === t('settings.notificationPreferencesUpdated')
+                    ? 'text-green-700 bg-green-50' 
+                    : 'text-red-700 bg-red-50'
+                }`}>
+                  {notificationMessage}
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -20,15 +20,21 @@ export async function getDatabase(): Promise<Database> {
   
   const sqlite = new sqlite3.Database(dbPath);
   
-  const runAsync = promisify(sqlite.run.bind(sqlite)) as (sql: string, params?: unknown[]) => Promise<void>;
   const getAsync = promisify(sqlite.get.bind(sqlite)) as (sql: string, params?: unknown[]) => Promise<unknown>;
   const allAsync = promisify(sqlite.all.bind(sqlite)) as (sql: string, params?: unknown[]) => Promise<unknown[]>;
   const closeAsync = promisify(sqlite.close.bind(sqlite)) as () => Promise<void>;
 
   db = {
     run: async (sql: string, params?: unknown[]) => {
-      await runAsync(sql, params);
-      return { lastID: (sqlite as any).lastID, changes: (sqlite as any).changes };
+      return new Promise<{ lastID: number; changes: number }>((resolve, reject) => {
+        sqlite.run(sql, params || [], function(this: any, err: Error | null) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve({ lastID: this.lastID, changes: this.changes });
+          }
+        });
+      });
     },
     get: getAsync,
     all: allAsync,
@@ -148,6 +154,8 @@ async function initializeDatabase(db: Database) {
   await db.run(`
     CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)
   `);
+  
+  await migrateAccountsTableForAmortization(db);
 }
 
 async function migrateUsersTableForRoles(db: Database) {
@@ -180,6 +188,101 @@ async function migrateUsersTableForRoles(db: Database) {
   } catch (error) {
     await db.run('ROLLBACK');
     console.error('Error migrating users table for roles:', error);
+    throw error;
+  }
+}
+
+async function migrateAccountsTableForAmortization(db: Database) {
+  try {
+    const tableInfo = await db.all(`
+      PRAGMA table_info(accounts)
+    `) as any[];
+    
+    const hasAmortizationColumns = tableInfo.some(column => column.name === 'apr_rate');
+    
+    if (!hasAmortizationColumns) {
+      console.log('Adding amortization columns to accounts table...');
+      
+      await db.run('BEGIN TRANSACTION');
+      
+      // Add amortization columns for debt accounts
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN apr_rate DECIMAL(5, 4) DEFAULT NULL
+      `);
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN monthly_payment DECIMAL(15, 2) DEFAULT NULL
+      `);
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN loan_term_months INTEGER DEFAULT NULL
+      `);
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN remaining_months INTEGER DEFAULT NULL
+      `);
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN payment_type TEXT CHECK(payment_type IN ('fixed', 'interest_only')) DEFAULT 'fixed'
+      `);
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN auto_update_enabled BOOLEAN DEFAULT FALSE
+      `);
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN last_auto_update DATE DEFAULT NULL
+      `);
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN original_balance DECIMAL(15, 2) DEFAULT NULL
+      `);
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN loan_start_date DATE DEFAULT NULL
+      `);
+      
+      await db.run('COMMIT');
+      console.log('Successfully migrated accounts table with amortization columns');
+    }
+    
+    // Also migrate balances table to track amortization details
+    await migrateBalancesTableForAmortization(db);
+  } catch (error) {
+    await db.run('ROLLBACK');
+    console.error('Error migrating accounts table for amortization:', error);
+    throw error;
+  }
+}
+
+async function migrateBalancesTableForAmortization(db: Database) {
+  try {
+    const tableInfo = await db.all(`
+      PRAGMA table_info(balances)
+    `) as any[];
+    
+    const hasAmortizationColumns = tableInfo.some(column => column.name === 'balance_type');
+    
+    if (!hasAmortizationColumns) {
+      console.log('Adding amortization tracking columns to balances table...');
+      
+      await db.run('BEGIN TRANSACTION');
+      
+      // Add columns to track balance update types and amortization details
+      await db.run(`
+        ALTER TABLE balances ADD COLUMN balance_type TEXT CHECK(balance_type IN ('manual', 'automatic', 'payment')) DEFAULT 'manual'
+      `);
+      await db.run(`
+        ALTER TABLE balances ADD COLUMN interest_amount DECIMAL(15, 2) DEFAULT NULL
+      `);
+      await db.run(`
+        ALTER TABLE balances ADD COLUMN principal_amount DECIMAL(15, 2) DEFAULT NULL
+      `);
+      await db.run(`
+        ALTER TABLE balances ADD COLUMN payment_amount DECIMAL(15, 2) DEFAULT NULL
+      `);
+      await db.run(`
+        ALTER TABLE balances ADD COLUMN notes TEXT DEFAULT NULL
+      `);
+      
+      await db.run('COMMIT');
+      console.log('Successfully migrated balances table with amortization tracking columns');
+    }
+  } catch (error) {
+    await db.run('ROLLBACK');
+    console.error('Error migrating balances table for amortization:', error);
     throw error;
   }
 }
