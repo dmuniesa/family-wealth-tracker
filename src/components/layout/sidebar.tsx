@@ -60,7 +60,7 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
       },
       {
         name: t('navigation.admin'),
-        href: `/${locale}/admin/notifications`,
+        href: `/${locale}/admin`,
         icon: Mail,
       }
     ] : []),

@@ -75,6 +75,43 @@ export class UserService {
     const user = await db.get('SELECT role FROM users WHERE id = ?', [userId]) as User | null;
     return user?.role === 'administrator';
   }
+
+  static async updateUser(userId: number, updates: Partial<User>): Promise<void> {
+    const db = await getDatabase();
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    
+    // Build dynamic update query
+    if (updates.email !== undefined) {
+      fields.push('email = ?');
+      values.push(updates.email);
+    }
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.role !== undefined) {
+      fields.push('role = ?');
+      values.push(updates.role);
+    }
+    if (updates.password_hash !== undefined) {
+      fields.push('password_hash = ?');
+      values.push(updates.password_hash);
+    }
+    if (updates.notifications_enabled !== undefined) {
+      fields.push('notifications_enabled = ?');
+      values.push(updates.notifications_enabled);
+    }
+    
+    if (fields.length === 0) {
+      return; // No updates to apply
+    }
+    
+    values.push(userId);
+    
+    const query = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+    await db.run(query, values);
+  }
 }
 
 export class AccountService {
