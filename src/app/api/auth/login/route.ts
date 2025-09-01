@@ -55,10 +55,6 @@ export async function POST(request: NextRequest) {
     console.log('Login - session after setting user:', JSON.stringify(session));
     await session.save?.();
     console.log('Session saved successfully');
-    
-    // Verify session was saved by reading it back
-    const verifySession = await getSession(request, response);
-    console.log('Login - verification read session:', JSON.stringify(verifySession));
 
     return response;
   } catch (error) {

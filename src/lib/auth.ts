@@ -16,19 +16,24 @@ export const sessionOptions = {
   password: (process.env.SESSION_SECRET || "default-dev-secret-32-chars-long!!").substring(0, 32),
   cookieName: "wealth-tracker-session",
   cookieOptions: {
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && process.env.DISABLE_HTTPS !== "true",
     httpOnly: true,
     maxAge: 60 * 60 * 24 * 7, // 1 week
     sameSite: "lax" as const,
     path: "/",
+    // Ensure cookie works across domains/subdomains in production
+    ...(process.env.NODE_ENV === "production" && process.env.COOKIE_DOMAIN && {
+      domain: process.env.COOKIE_DOMAIN
+    })
   },
 };
 
-console.log('Session config - NODE_ENV:', process.env.NODE_ENV);
-console.log('Session config - SESSION_SECRET exists:', !!process.env.SESSION_SECRET);
-console.log('Session config - SESSION_SECRET length:', process.env.SESSION_SECRET?.length);
-console.log('Session config - Truncated SECRET first 8 chars:', process.env.SESSION_SECRET?.substring(0, 8));
-console.log('Session config - Using password length:', (process.env.SESSION_SECRET || "default-dev-secret-32-chars-long!!").substring(0, 32).length);
+// Debug: Session configuration
+if (process.env.NODE_ENV === 'development') {
+  console.log('Session config - NODE_ENV:', process.env.NODE_ENV);
+  console.log('Session config - SESSION_SECRET length:', process.env.SESSION_SECRET?.length);
+  console.log('Session config - Using password length:', (process.env.SESSION_SECRET || "default-dev-secret-32-chars-long!!").substring(0, 32).length);
+}
 
 export async function getSession(req: NextRequest, res?: NextResponse): Promise<AuthSession> {
   const response = res || new NextResponse();
