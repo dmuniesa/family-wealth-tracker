@@ -198,6 +198,10 @@ A comprehensive web application for family wealth tracking where multiple users 
 - ✅ Data export functionality for external analysis
 - ✅ Multi-language support for international families
 
+## 📖 Documentation
+
+For detailed setup and deployment guides, see the [documentation directory](docs/).
+
 ## 🚀 Quick Start
 
 ### Development Setup
