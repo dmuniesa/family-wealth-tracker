@@ -69,24 +69,24 @@ SelectScrollDownButton.displayName =
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
-    container?: HTMLElement | null
-  }
->(({ className, children, position = "popper", container, ...props }, ref) => {
-  // Handle portal rendering for production/SSR compatibility
-  const [mounted, setMounted] = React.useState(false)
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+>(({ className, children, position = "popper", ...props }, ref) => {
+  // Community-proven fix for SSR hydration issues
+  // Based on: https://github.com/radix-ui/primitives/issues/1386
+  const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null)
   
   React.useEffect(() => {
-    setMounted(true)
+    // Set container after client-side mount to prevent hydration mismatch
+    setPortalContainer(document.body)
   }, [])
   
-  if (!mounted) {
-    // Return null during SSR to prevent hydration mismatches
+  // Only render portal content when container is available
+  if (!portalContainer) {
     return null
   }
   
   return (
-    <SelectPrimitive.Portal container={container}>
+    <SelectPrimitive.Portal container={portalContainer}>
       <SelectPrimitive.Content
         ref={ref}
         className={cn(

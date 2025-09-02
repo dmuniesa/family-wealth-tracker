@@ -77,7 +77,6 @@ export default function DetailedDropdownDebug() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
-                forceRender={true}
                 className="bg-red-200 border-4 border-red-500"
                 style={{ 
                   backgroundColor: 'red !important',

@@ -70,29 +70,24 @@ DropdownMenuSubContent.displayName =
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> & {
-    container?: HTMLElement | null
-    forceRender?: boolean
-  }
->(({ className, sideOffset = 4, container, forceRender = false, ...props }, ref) => {
-  // Handle portal rendering for production/SSR compatibility
-  const [mounted, setMounted] = React.useState(false)
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => {
+  // Community-proven fix for SSR hydration issues
+  // Based on: https://github.com/radix-ui/primitives/issues/1386
+  const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null)
   
   React.useEffect(() => {
-    setMounted(true)
-    console.log('DropdownMenuContent mounted:', true)
+    // Set container after client-side mount to prevent hydration mismatch
+    setPortalContainer(document.body)
   }, [])
   
-  // Force render in production or when mounted
-  if (!mounted && !forceRender) {
-    console.log('DropdownMenuContent not mounted, returning null')
+  // Only render portal content when container is available
+  if (!portalContainer) {
     return null
   }
   
-  console.log('DropdownMenuContent rendering portal content')
-  
   return (
-    <DropdownMenuPrimitive.Portal container={container}>
+    <DropdownMenuPrimitive.Portal container={portalContainer}>
       <DropdownMenuPrimitive.Content
         ref={ref}
         sideOffset={sideOffset}
