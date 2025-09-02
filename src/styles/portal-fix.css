@@ -1,0 +1,67 @@
+/* Fix for Docker portal rendering issues */
+
+/* Force Radix UI portals to be visible */
+[data-radix-popper-content-wrapper] {
+  position: fixed !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+[data-radix-dropdown-menu-content] {
+  min-width: 8rem !important;
+  min-height: 2rem !important;
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  padding: 4px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+}
+
+[data-radix-select-content] {
+  min-width: 8rem !important;
+  min-height: 2rem !important;
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  padding: 4px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+}
+
+/* Force dropdown items to be visible */
+[data-radix-dropdown-menu-item],
+[data-radix-select-item] {
+  display: flex !important;
+  padding: 6px 8px !important;
+  cursor: pointer !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  min-height: 32px !important;
+  align-items: center !important;
+}
+
+[data-radix-dropdown-menu-item]:hover,
+[data-radix-select-item]:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* Debug: Make portals super visible for testing */
+.debug-portal [data-radix-popper-content-wrapper] {
+  background: red !important;
+  border: 5px solid blue !important;
+}
+
+.debug-portal [data-radix-dropdown-menu-content] {
+  background: yellow !important;
+  color: black !important;
+  font-weight: bold !important;
+  border: 3px solid green !important;
+}

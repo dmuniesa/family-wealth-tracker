@@ -63,47 +63,49 @@ export default function DetailedDropdownDebug() {
         
         <div className="border-t pt-2 mt-2">
           <div className="text-xs font-bold mb-2">Test Dropdown:</div>
-          <DropdownMenu onOpenChange={handleOpenChange}>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setClickCount(c => c + 1)}
-                className="w-full"
-              >
-                <MoreHorizontal className="h-4 w-4 mr-2" />
-                Test Menu
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              forceRender={true}
-              className="bg-red-200 border-4 border-red-500"
-              style={{ 
-                backgroundColor: 'red !important',
-                zIndex: 99999,
-                position: 'fixed'
-              }}
-            >
-              <DropdownMenuItem 
-                onClick={() => {
-                  alert('Item 1 clicked')
-                  console.log('Item 1 clicked')
+          <div className="debug-portal">
+            <DropdownMenu onOpenChange={handleOpenChange}>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setClickCount(c => c + 1)}
+                  className="w-full"
+                >
+                  <MoreHorizontal className="h-4 w-4 mr-2" />
+                  Test Menu
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                forceRender={true}
+                className="bg-red-200 border-4 border-red-500"
+                style={{ 
+                  backgroundColor: 'red !important',
+                  zIndex: 99999,
+                  position: 'fixed'
                 }}
-                className="bg-yellow-200"
               >
-                🟡 Test Item 1
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => {
-                  alert('Item 2 clicked')
-                  console.log('Item 2 clicked')
-                }}
-                className="bg-green-200"
-              >
-                🟢 Test Item 2
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem 
+                  onClick={() => {
+                    alert('Item 1 clicked')
+                    console.log('Item 1 clicked')
+                  }}
+                  className="bg-yellow-200"
+                >
+                  🟡 Test Item 1
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => {
+                    alert('Item 2 clicked')
+                    console.log('Item 2 clicked')
+                  }}
+                  className="bg-green-200"
+                >
+                  🟢 Test Item 2
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         
         <div className="border-t pt-2 mt-2">

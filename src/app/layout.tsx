@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { initializeApp } from "@/lib/startup";
 import "./globals.css";
+import "../styles/portal-fix.css";
 
 // Initialize app services on startup
 if (typeof window === 'undefined') {
