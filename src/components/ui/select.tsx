@@ -69,8 +69,8 @@ SelectScrollDownButton.displayName =
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { forceMount?: boolean }
+>(({ className, children, position = "popper", forceMount, ...props }, ref) => {
   // More aggressive fix for Docker/SSR portal issues
   // Based on: https://github.com/radix-ui/primitives/issues/1386 (force mount pattern)
   const [_, forceRender] = React.useState(0)
