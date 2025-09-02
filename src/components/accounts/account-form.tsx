@@ -28,6 +28,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { ibanSchema, optionalIbanSchema, currencySchema } from "@/lib/validation"
 import DetailedDropdownDebug from "@/components/debug/DetailedDropdownDebug"
+import WorkingDropdownTest from "@/components/debug/WorkingDropdownTest"
 
 // Create schema function to accept translated messages
 const createAccountSchema = (t: any, category?: string) => z.object({
@@ -134,6 +135,7 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
   return (
     <>
       <DetailedDropdownDebug />
+      <WorkingDropdownTest />
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{isEdit ? t('accounts.editAccount') : t('accounts.addAccount')}</CardTitle>

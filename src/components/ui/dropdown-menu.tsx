@@ -72,19 +72,24 @@ const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> & {
     container?: HTMLElement | null
+    forceRender?: boolean
   }
->(({ className, sideOffset = 4, container, ...props }, ref) => {
+>(({ className, sideOffset = 4, container, forceRender = false, ...props }, ref) => {
   // Handle portal rendering for production/SSR compatibility
   const [mounted, setMounted] = React.useState(false)
   
   React.useEffect(() => {
     setMounted(true)
+    console.log('DropdownMenuContent mounted:', true)
   }, [])
   
-  if (!mounted) {
-    // Return null during SSR to prevent hydration mismatches
+  // Force render in production or when mounted
+  if (!mounted && !forceRender) {
+    console.log('DropdownMenuContent not mounted, returning null')
     return null
   }
+  
+  console.log('DropdownMenuContent rendering portal content')
   
   return (
     <DropdownMenuPrimitive.Portal container={container}>
