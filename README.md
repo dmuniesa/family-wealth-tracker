@@ -4,8 +4,37 @@
   <img src="public/logo/logotrans.png" alt="Family Wealth Tracker Logo" width="400" />
 </div>
 
+
 ## 🎯 Project Overview
 A comprehensive web application for family wealth tracking where multiple users share access to monitor banking accounts, investments, and debts over time. Track your complete financial picture with automated net worth calculations that account for both assets and liabilities.
+
+## 🚀 Quick Start
+
+### Development Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd family-wealth-track
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your encryption keys and OAuth credentials (optional for cloud backups)
+
+# Start development server
+npm run dev
+```
+
+### Docker Deployment
+```bash
+# Quick deployment
+npm run docker:up
+
+# Access application
+open http://localhost:3000
+```
 
 ## 🏗️ Technical Stack
 - **Frontend**: React with Next.js 15.5.2, Tailwind CSS + shadcn/ui components, Recharts for visualizations
