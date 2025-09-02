@@ -71,16 +71,18 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { forceMount?: boolean }
 >(({ className, children, position = "popper", forceMount, ...props }, ref) => {
-  // Explicitly exclude forceMount and any other portal-specific props from content props
-  const { container, ...contentProps } = props
+  // Explicitly exclude ALL portal-specific props from content props
+  const { container, ...restProps } = props
+  // Further exclude any remaining problematic props
+  const { forceMount: forceMountProp, ...contentProps } = restProps
   // More aggressive fix for Docker/SSR portal issues
   // Based on: https://github.com/radix-ui/primitives/issues/1386 (force mount pattern)
-  const [_, forceRender] = React.useState(0)
+  const [renderKey, setRenderKey] = React.useState(0)
   const containerRef = React.useRef<HTMLElement | null>(null)
   
   React.useEffect(() => {
     containerRef.current = globalThis?.document?.body || null
-    forceRender((prev) => prev + 1)
+    setRenderKey((prev) => prev + 1)
   }, [])
   
   // Force mount pattern - always render but with proper container
