@@ -71,24 +71,25 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => {
-  // Community-proven fix for SSR hydration issues
-  // Based on: https://github.com/radix-ui/primitives/issues/1386
-  const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null)
+  // More aggressive fix for Docker/SSR portal issues
+  // Based on: https://github.com/radix-ui/primitives/issues/1386 (force mount pattern)
+  const [_, forceRender] = React.useState(0)
+  const containerRef = React.useRef<HTMLElement | null>(null)
   
   React.useEffect(() => {
-    // Set container after client-side mount to prevent hydration mismatch
-    setPortalContainer(document.body)
+    containerRef.current = globalThis?.document?.body || null
+    forceRender((prev) => prev + 1)
   }, [])
   
-  // Only render portal content when container is available
-  if (!portalContainer) {
-    return null
-  }
-  
+  // Force mount pattern - always render but with proper container
   return (
-    <SelectPrimitive.Portal container={portalContainer}>
+    <SelectPrimitive.Portal 
+      forceMount 
+      container={containerRef.current}
+    >
       <SelectPrimitive.Content
         ref={ref}
+        forceMount
         className={cn(
           "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           position === "popper" &&
