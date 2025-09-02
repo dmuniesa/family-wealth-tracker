@@ -139,21 +139,23 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Progress Tracking**: Monitor remaining months to payoff and total interest calculations
 - **Payment History**: Detailed transaction history distinguishing between automatic updates, manual entries, and payments
 
-### 7. User Roles & Permissions
-- **Three Role Levels**: Administrator, User, and Guest with distinct permission sets
-- **Role Management**: Administrators can assign and change user roles for family members
-- **Permission-Based Access**: Role-specific access to features and administrative functions
-- **Administrator Privileges**: Full system access, user management, backup controls, and registration settings
-- **User Permissions**: Standard access to financial data and personal account management
-- **Guest Restrictions**: Limited read-only access with restricted functionality
-- **Secure Role Assignment**: Users cannot modify their own roles, preventing privilege escalation
+### 7. User Management & Administration
+- **Comprehensive User Management**: Full CRUD operations for family user accounts through admin interface
+- **Admin Dashboard**: Dedicated administrative section with tabbed interface for system management
+- **User Creation**: Administrators can create new family member accounts with email, name, role, and password
+- **User Editing**: Modify existing user details including email, name, role, and optional password updates
+- **User Deletion**: Remove family members with proper safeguards (cannot delete self or last administrator)
+- **Role Management**: Three-tier system (Administrator, User, Guest) with role assignment and modification
+- **User Search & Filtering**: Search users by name or email with real-time filtering
+- **Security Validations**: Email uniqueness checking, password strength requirements, and role change restrictions
+- **Safe Operations**: Protection against self-deletion and administrator role removal safeguards
 
 ## 🎛️ User Interface Requirements
 
 ### Layout
 - Clean, minimalist design using Tailwind CSS + shadcn/ui
 - Responsive design (desktop and mobile friendly)
-- Sidebar navigation with main sections: Dashboard, Accounts, History, Backups, Members, Settings
+- Sidebar navigation with main sections: Dashboard, Accounts, History, Backups, Members, Admin, Settings
 
 ### Account Identification
 - Display account name prominently
@@ -224,6 +226,11 @@ A comprehensive web application for family wealth tracking where multiple users 
 - **Email Configuration**: SMTP setup with test functionality and notification history tracking
 - **Debt Amortization System**: Advanced loan tracking with automatic monthly interest application
 - **Payment Scheduling**: French method and interest-only payment calculations with full amortization schedules
+- **Administrative User Management**: Complete user administration system with create, read, update, delete operations
+- **Admin Interface**: Tabbed administrative dashboard combining notification management and user administration
+- **User Management API**: RESTful endpoints for user CRUD operations with proper authentication and authorization
+- **Form Validation**: Comprehensive client and server-side validation for user creation and editing
+- **Password Management**: Secure password handling with optional updates and strength requirements
 
 ## 🎯 Success Criteria
 - ✅ Family members can easily identify and manage all account types including debts
