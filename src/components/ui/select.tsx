@@ -71,6 +71,8 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { forceMount?: boolean }
 >(({ className, children, position = "popper", forceMount, ...props }, ref) => {
+  // Explicitly exclude forceMount and any other portal-specific props from content props
+  const { container, ...contentProps } = props
   // More aggressive fix for Docker/SSR portal issues
   // Based on: https://github.com/radix-ui/primitives/issues/1386 (force mount pattern)
   const [_, forceRender] = React.useState(0)
@@ -96,7 +98,7 @@ const SelectContent = React.forwardRef<
           className
         )}
         position={position}
-        {...props}
+        {...contentProps}
       >
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
