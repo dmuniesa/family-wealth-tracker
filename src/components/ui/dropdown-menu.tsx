@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { Check, ChevronRight, Circle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -9,6 +10,7 @@ interface DropdownContextValue {
   isOpen: boolean
   setIsOpen: (open: boolean) => void
   closeDropdown: () => void
+  triggerRef: React.RefObject<HTMLElement | null>
 }
 
 const DropdownContext = React.createContext<DropdownContextValue | null>(null)
@@ -24,6 +26,7 @@ const useDropdown = () => {
 // Root component
 const DropdownMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOpen, setIsOpen] = React.useState(false)
+  const triggerRef = React.useRef<HTMLElement | null>(null)
   
   const closeDropdown = React.useCallback(() => {
     setIsOpen(false)
@@ -46,12 +49,15 @@ const DropdownMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const contextValue = React.useMemo(() => ({
     isOpen,
     setIsOpen,
-    closeDropdown
-  }), [isOpen, setIsOpen, closeDropdown])
+    closeDropdown,
+    triggerRef
+  }), [isOpen, setIsOpen, closeDropdown, triggerRef])
 
   return (
     <DropdownContext.Provider value={contextValue}>
-      {children}
+      <div className="relative">
+        {children}
+      </div>
     </DropdownContext.Provider>
   )
 }
@@ -63,7 +69,7 @@ const DropdownMenuTrigger = React.forwardRef<
     asChild?: boolean
   }
 >(({ className, children, onClick, asChild = false, ...props }, ref) => {
-  const { isOpen, setIsOpen } = useDropdown()
+  const { isOpen, setIsOpen, triggerRef } = useDropdown()
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     event.preventDefault()
@@ -71,9 +77,18 @@ const DropdownMenuTrigger = React.forwardRef<
     onClick?.(event)
   }
 
+  const combinedRef = React.useCallback((node: HTMLElement | null) => {
+    triggerRef.current = node
+    if (typeof ref === 'function') {
+      ref(node)
+    } else if (ref) {
+      ref.current = node
+    }
+  }, [ref, triggerRef])
+
   if (asChild) {
     return React.cloneElement(children as React.ReactElement, {
-      ref,
+      ref: combinedRef,
       onClick: handleClick,
       "aria-expanded": isOpen,
       "aria-haspopup": "menu",
@@ -83,7 +98,7 @@ const DropdownMenuTrigger = React.forwardRef<
 
   return (
     <button
-      ref={ref}
+      ref={combinedRef}
       className={cn("outline-none", className)}
       onClick={handleClick}
       aria-expanded={isOpen}
@@ -104,41 +119,91 @@ const DropdownMenuContent = React.forwardRef<
     align?: "start" | "center" | "end"
   }
 >(({ className, children, sideOffset = 4, align = "end", ...props }, ref) => {
-  const { isOpen, closeDropdown } = useDropdown()
+  const { isOpen, closeDropdown, triggerRef } = useDropdown()
   const contentRef = React.useRef<HTMLDivElement>(null)
-  const [position, setPosition] = React.useState<"top" | "bottom">("bottom")
+  const [position, setPosition] = React.useState({ 
+    x: 0, 
+    y: 0, 
+    placement: "bottom" as "top" | "bottom",
+    useRight: false 
+  })
+  const [mounted, setMounted] = React.useState(false)
 
-  // Calculate position based on available space
+  // Ensure component is mounted (for SSR)
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Calculate position based on trigger element
   React.useLayoutEffect(() => {
-    if (isOpen && contentRef.current) {
-      const triggerElement = contentRef.current.parentElement?.querySelector('button')
-      if (triggerElement) {
-        const triggerRect = triggerElement.getBoundingClientRect()
-        const viewportHeight = window.innerHeight
-        const spaceBelow = viewportHeight - triggerRect.bottom - sideOffset
-        const spaceAbove = triggerRect.top - sideOffset
-        
-        // Estimate content height (assume ~200px max)
-        const estimatedContentHeight = 200
-        
-        if (spaceBelow < estimatedContentHeight && spaceAbove > spaceBelow) {
-          setPosition("top")
-        } else {
-          setPosition("bottom")
-        }
+    if (isOpen && triggerRef.current && mounted) {
+      const triggerRect = triggerRef.current.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const viewportWidth = window.innerWidth
+      const scrollY = window.scrollY
+      const scrollX = window.scrollX
+      
+      // Estimate content dimensions
+      const estimatedContentHeight = 200
+      const estimatedContentWidth = 200
+      
+      // Calculate vertical position
+      const spaceBelow = viewportHeight - triggerRect.bottom - sideOffset
+      const spaceAbove = triggerRect.top - sideOffset
+      
+      let y: number
+      let placement: "top" | "bottom"
+      
+      if (spaceBelow < estimatedContentHeight && spaceAbove > spaceBelow) {
+        // Position above
+        y = triggerRect.top + scrollY - sideOffset
+        placement = "top"
+      } else {
+        // Position below
+        y = triggerRect.bottom + scrollY + sideOffset
+        placement = "bottom"
       }
+      
+      // Calculate horizontal position based on alignment
+      let x: number
+      let useRight = false
+      
+      switch (align) {
+        case "start":
+          x = triggerRect.left + scrollX
+          break
+        case "center":
+          x = triggerRect.left + scrollX + (triggerRect.width / 2) - (estimatedContentWidth / 2)
+          break
+        case "end":
+        default:
+          // For end alignment, use right positioning
+          x = viewportWidth - (triggerRect.right + scrollX)
+          useRight = true
+          break
+      }
+      
+      // Ensure content stays within viewport
+      if (!useRight) {
+        x = Math.max(8, Math.min(x, viewportWidth - estimatedContentWidth - 8))
+      } else {
+        x = Math.max(8, x)
+      }
+      
+      setPosition({ x, y, placement, useRight })
     }
-  }, [isOpen, sideOffset])
+  }, [isOpen, triggerRef, align, sideOffset, mounted])
 
   // Close on outside click
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (contentRef.current && !contentRef.current.contains(event.target as Node)) {
+      if (contentRef.current && !contentRef.current.contains(event.target as Node) && 
+          triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
         closeDropdown()
       }
     }
 
-    if (isOpen) {
+    if (isOpen && mounted) {
       // Use setTimeout to avoid immediate closure on trigger click
       setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside)
@@ -146,29 +211,22 @@ const DropdownMenuContent = React.forwardRef<
       
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isOpen, closeDropdown])
+  }, [isOpen, closeDropdown, triggerRef, mounted])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  const alignmentClass = {
-    start: "left-0",
-    center: "left-1/2 transform -translate-x-1/2", 
-    end: "right-0"
-  }[align]
-
-  const positionClass = position === "top" 
-    ? `bottom-full mb-[${sideOffset}px]` 
-    : `top-full mt-[${sideOffset}px]`
-
-  return (
+  const content = (
     <div
       ref={contentRef}
       className={cn(
-        "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
-        alignmentClass,
-        positionClass,
+        "fixed z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
         className
       )}
+      style={{
+        ...(position.useRight ? { right: position.x } : { left: position.x }),
+        top: position.placement === "top" ? position.y - 200 : position.y,
+        transformOrigin: position.placement === "top" ? "bottom center" : "top center"
+      }}
       {...props}
     >
       <div onClick={closeDropdown}>
@@ -176,6 +234,8 @@ const DropdownMenuContent = React.forwardRef<
       </div>
     </div>
   )
+
+  return createPortal(content, document.body)
 })
 DropdownMenuContent.displayName = "DropdownMenuContent"
 
