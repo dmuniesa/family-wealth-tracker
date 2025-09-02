@@ -9,12 +9,11 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { Mail, Users, Shield } from "lucide-react"
+import { Mail, Users, Shield, Settings } from "lucide-react"
 import { useTranslations } from 'next-intl'
 import { UserManagement } from "@/components/admin/user-management"
-
-// Import the notifications component (we'll need to extract it)
 import { NotificationManagement } from "@/components/admin/notification-management"
+import { RegistrationManagement } from "@/components/admin/registration-management"
 
 function AdminContent() {
   const t = useTranslations("navigation")
@@ -43,6 +42,10 @@ function AdminContent() {
               <Users className="h-4 w-4" />
               {tSettings("users")}
             </TabsTrigger>
+            <TabsTrigger value="registration" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Registration
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="notifications">
@@ -51,6 +54,10 @@ function AdminContent() {
 
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="registration">
+            <RegistrationManagement />
           </TabsContent>
         </Tabs>
       </div>

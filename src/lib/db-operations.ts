@@ -27,6 +27,11 @@ export class UserService {
     return await db.all('SELECT * FROM users WHERE family_id = ?', [familyId]) as User[];
   }
 
+  static async getAllUsers(): Promise<User[]> {
+    const db = await getDatabase();
+    return await db.all('SELECT * FROM users ORDER BY created_at DESC') as User[];
+  }
+
   static async familyExists(familyId: number): Promise<boolean> {
     const db = await getDatabase();
     const result = await db.get('SELECT 1 FROM users WHERE family_id = ? LIMIT 1', [familyId]);

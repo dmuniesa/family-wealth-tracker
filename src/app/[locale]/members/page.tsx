@@ -7,11 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { 
   Users, 
-  UserCheck, 
-  UserX, 
   Trash2,
   Clock,
-  Settings,
   Shield,
   User,
   Eye
@@ -36,14 +33,12 @@ export default function MembersPage() {
   const t = useTranslations()
   const [members, setMembers] = useState<FamilyMember[]>([])
   const [loading, setLoading] = useState(true)
-  const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('user')
   const [updatingRoles, setUpdatingRoles] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     fetchMembers()
-    fetchRegistrationSettings()
     fetchCurrentUser()
   }, [])
 
@@ -61,17 +56,6 @@ export default function MembersPage() {
     }
   }
 
-  const fetchRegistrationSettings = async () => {
-    try {
-      const response = await fetch('/api/members/registration')
-      if (response.ok) {
-        const data = await response.json()
-        setRegistrationEnabled(data.enabled || false)
-      }
-    } catch (error) {
-      console.error('Failed to fetch registration settings:', error)
-    }
-  }
 
   const fetchCurrentUser = async () => {
     try {
@@ -86,23 +70,6 @@ export default function MembersPage() {
     }
   }
 
-  const toggleRegistration = async () => {
-    try {
-      const response = await fetch('/api/members/registration', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ enabled: !registrationEnabled }),
-      })
-      
-      if (response.ok) {
-        setRegistrationEnabled(!registrationEnabled)
-      }
-    } catch (error) {
-      console.error('Failed to toggle registration:', error)
-    }
-  }
 
   const removeMember = async (memberId: number) => {
     if (memberId === currentUserId) {
@@ -188,7 +155,6 @@ export default function MembersPage() {
   }
 
   const canManageRoles = currentUserRole === 'administrator'
-  const canToggleRegistration = currentUserRole === 'administrator'
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()
@@ -216,50 +182,18 @@ export default function MembersPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t('members.totalMembers')}</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{members.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {t('members.familyMembersDescription')}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t('members.registrationStatus')}</CardTitle>
-                {registrationEnabled ? (
-                  <UserCheck className="h-4 w-4 text-green-600" />
-                ) : (
-                  <UserX className="h-4 w-4 text-red-600" />
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm font-bold">
-                  {registrationEnabled ? t('members.registrationEnabled') : t('members.registrationDisabled')}
-                </div>
-                <Button
-                  size="sm"
-                  variant={registrationEnabled ? "destructive" : "default"}
-                  onClick={toggleRegistration}
-                  disabled={!canToggleRegistration}
-                  className="mt-2"
-                >
-                  {registrationEnabled ? t('members.disableRegistration') : t('members.enableRegistration')}
-                </Button>
-                {!canToggleRegistration && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t('members.insufficientPermissions')}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{t('members.totalMembers')}</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{members.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {t('members.familyMembersDescription')}
+              </p>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -320,7 +254,7 @@ export default function MembersPage() {
                                   disabled={updatingRoles.has(member.id)}
                                 >
                                   <SelectTrigger className="w-32">
-                                    <SelectValue />
+                                    <SelectValue placeholder={t(`roles.${member.role}`)} />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="administrator">{t('roles.administrator')}</SelectItem>

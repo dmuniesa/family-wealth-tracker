@@ -34,7 +34,7 @@ export async function GET(
     const userId = parseInt(resolvedParams.id);
     const user = await UserService.getUserById(userId);
     
-    if (!user || user.family_id !== session.user.family_id) {
+    if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -77,9 +77,9 @@ export async function PUT(
     const validatedData = updateUserSchema.parse(body);
     const { email, name, role, password } = validatedData;
 
-    // Get the user to verify they're in the same family
+    // Get the user to verify they exist
     const targetUser = await UserService.getUserById(userId);
-    if (!targetUser || targetUser.family_id !== session.user.family_id) {
+    if (!targetUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -173,14 +173,14 @@ export async function DELETE(
       );
     }
 
-    // Get the user to verify they're in the same family
+    // Get the user to verify they exist
     const targetUser = await UserService.getUserById(userId);
-    if (!targetUser || targetUser.family_id !== session.user.family_id) {
+    if (!targetUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check if this is the only administrator
-    const admins = await UserService.getUsersByRole(session.user.family_id, 'administrator');
+    // Check if this is the only administrator in their family
+    const admins = await UserService.getUsersByRole(targetUser.family_id, 'administrator');
     if (targetUser.role === 'administrator' && admins.length <= 1) {
       return NextResponse.json(
         { error: 'Cannot delete the only administrator. Promote another user first.' },

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -15,6 +16,7 @@ interface SelectContextValue {
   selectedLabel?: string
   setSelectedLabel: (label: string) => void
   registerOption: (value: string, label: string) => void
+  triggerRef: React.RefObject<HTMLButtonElement>
 }
 
 const SelectContext = React.createContext<SelectContextValue | null>(null)
@@ -47,6 +49,8 @@ const Select: React.FC<SelectProps> = ({
   const [isOpen, setIsOpen] = React.useState(false)
   const [selectedLabel, setSelectedLabel] = React.useState("")
   const [optionsRegistry, setOptionsRegistry] = React.useState<Record<string, string>>({})
+  const [isInitialized, setIsInitialized] = React.useState(false)
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
   
   const value = controlledValue !== undefined ? controlledValue : internalValue
   
@@ -63,15 +67,22 @@ const Select: React.FC<SelectProps> = ({
   }, [controlledValue, onValueChange, closeSelect])
 
   const registerOption = React.useCallback((optionValue: string, optionLabel: string) => {
-    setOptionsRegistry(prev => ({ ...prev, [optionValue]: optionLabel }))
-  }, [])
+    setOptionsRegistry(prev => {
+      const newRegistry = { ...prev, [optionValue]: optionLabel }
+      // If we have a value and this is the matching option, set the label immediately
+      if (value && optionValue === value && !selectedLabel) {
+        setTimeout(() => setSelectedLabel(optionLabel), 0)
+      }
+      return newRegistry
+    })
+  }, [value, selectedLabel])
 
   // Update selected label when value changes or when options are registered
   React.useEffect(() => {
-    if (value && optionsRegistry[value] && selectedLabel !== optionsRegistry[value]) {
+    if (value && optionsRegistry[value]) {
       setSelectedLabel(optionsRegistry[value])
     }
-  }, [value, optionsRegistry, selectedLabel])
+  }, [value, optionsRegistry])
 
   // Close on escape key
   React.useEffect(() => {
@@ -95,8 +106,9 @@ const Select: React.FC<SelectProps> = ({
     closeSelect,
     selectedLabel,
     setSelectedLabel,
-    registerOption
-  }), [isOpen, setIsOpen, value, handleValueChange, closeSelect, disabled, selectedLabel, setSelectedLabel, registerOption])
+    registerOption,
+    triggerRef
+  }), [isOpen, setIsOpen, value, handleValueChange, closeSelect, disabled, selectedLabel, setSelectedLabel, registerOption, triggerRef])
 
   return (
     <SelectContext.Provider value={contextValue}>
@@ -120,7 +132,10 @@ const SelectValue = React.forwardRef<
     children?: React.ReactNode
   }
 >(({ className, placeholder, children, ...props }, ref) => {
-  const { selectedLabel } = useSelect()
+  const { selectedLabel, value } = useSelect()
+
+  // Priority: children > selectedLabel > placeholder > value
+  const displayValue = children || selectedLabel || placeholder || value
 
   return (
     <span
@@ -128,7 +143,7 @@ const SelectValue = React.forwardRef<
       className={cn("block truncate", className)}
       {...props}
     >
-      {children || selectedLabel || placeholder}
+      {displayValue}
     </span>
   )
 })
@@ -139,7 +154,7 @@ const SelectTrigger = React.forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement>
 >(({ className, children, onClick, disabled, ...props }, ref) => {
-  const { isOpen, setIsOpen } = useSelect()
+  const { isOpen, setIsOpen, triggerRef } = useSelect()
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -149,9 +164,20 @@ const SelectTrigger = React.forwardRef<
     onClick?.(event)
   }
 
+  const combinedRef = React.useCallback((node: HTMLButtonElement) => {
+    triggerRef.current = node
+    if (ref) {
+      if (typeof ref === 'function') {
+        ref(node)
+      } else {
+        ref.current = node
+      }
+    }
+  }, [ref, triggerRef])
+
   return (
     <button
-      ref={ref}
+      ref={combinedRef}
       type="button"
       className={cn(
         "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
@@ -170,20 +196,46 @@ const SelectTrigger = React.forwardRef<
 })
 SelectTrigger.displayName = "SelectTrigger"
 
-// Content component
+// Content component with portal
 const SelectContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
     position?: "item-aligned" | "popper"
   }
 >(({ className, children, position = "popper", ...props }, ref) => {
-  const { isOpen, closeSelect } = useSelect()
+  const { isOpen, closeSelect, triggerRef } = useSelect()
   const contentRef = React.useRef<HTMLDivElement>(null)
+  const [contentPosition, setContentPosition] = React.useState<{
+    top: number
+    left: number
+    width: number
+  }>({ top: 0, left: 0, width: 0 })
+
+  // Calculate position when opened
+  React.useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const triggerRect = triggerRef.current.getBoundingClientRect()
+      const scrollY = window.scrollY || window.pageYOffset
+      const scrollX = window.scrollX || window.pageXOffset
+      
+      setContentPosition({
+        top: triggerRect.bottom + scrollY,
+        left: triggerRect.left + scrollX,
+        width: triggerRect.width
+      })
+    }
+  }, [isOpen, triggerRef])
 
   // Close on outside click
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (contentRef.current && !contentRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (
+        contentRef.current && 
+        !contentRef.current.contains(target) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(target)
+      ) {
         closeSelect()
       }
     }
@@ -196,20 +248,49 @@ const SelectContent = React.forwardRef<
       
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isOpen, closeSelect])
+  }, [isOpen, closeSelect, triggerRef])
+
+  // Handle scroll to update position
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (isOpen && triggerRef.current) {
+        const triggerRect = triggerRef.current.getBoundingClientRect()
+        const scrollY = window.scrollY || window.pageYOffset
+        const scrollX = window.scrollX || window.pageXOffset
+        
+        setContentPosition({
+          top: triggerRect.bottom + scrollY,
+          left: triggerRect.left + scrollX,
+          width: triggerRect.width
+        })
+      }
+    }
+
+    if (isOpen) {
+      window.addEventListener('scroll', handleScroll, true)
+      window.addEventListener('resize', handleScroll)
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true)
+        window.removeEventListener('resize', handleScroll)
+      }
+    }
+  }, [isOpen, triggerRef])
 
   if (!isOpen) return null
 
-  return (
+  const content = (
     <div
       ref={contentRef}
       className={cn(
-        "absolute z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
-        position === "popper" 
-          ? "top-full mt-1 w-full" 
-          : "top-full mt-1",
+        "fixed z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg",
         className
       )}
+      style={{
+        top: contentPosition.top,
+        left: contentPosition.left,
+        width: contentPosition.width,
+        minWidth: contentPosition.width
+      }}
       {...props}
     >
       <div className="overflow-y-auto max-h-96 p-1">
@@ -217,6 +298,11 @@ const SelectContent = React.forwardRef<
       </div>
     </div>
   )
+
+  // Render in portal to escape table overflow constraints
+  return typeof document !== 'undefined' 
+    ? createPortal(content, document.body)
+    : null
 })
 SelectContent.displayName = "SelectContent"
 
@@ -232,10 +318,14 @@ const SelectItem = React.forwardRef<
   const isSelected = selectedValue === value
   const label = typeof children === 'string' ? children : value
 
-  // Register this option on mount
+  // Register this option on mount and update selected label if this is the selected value
   React.useEffect(() => {
     registerOption(value, label)
-  }, [value, label, registerOption])
+    // If this option's value matches the current selected value, update the label immediately
+    if (selectedValue === value) {
+      setSelectedLabel(label)
+    }
+  }, [value, label, registerOption, selectedValue, setSelectedLabel])
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (disabled) return

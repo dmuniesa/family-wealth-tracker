@@ -71,7 +71,8 @@ export function UserManagement() {
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+    user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.family_id.toString().includes(searchTerm)
   )
 
   const handleCreateUser = () => {
@@ -190,8 +191,64 @@ export function UserManagement() {
     )
   }
 
+  // Calculate statistics
+  const totalUsers = users.length
+  const usersByRole = users.reduce((acc, user) => {
+    acc[user.role] = (acc[user.role] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+  const uniqueFamilies = new Set(users.map(user => user.family_id)).size
+
   return (
     <div className="space-y-6">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Users</p>
+                <p className="text-2xl font-bold">{totalUsers}</p>
+              </div>
+              <Users className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Administrators</p>
+                <p className="text-2xl font-bold">{usersByRole.administrator || 0}</p>
+              </div>
+              <Shield className="h-8 w-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Regular Users</p>
+                <p className="text-2xl font-bold">{usersByRole.user || 0}</p>
+              </div>
+              <UserIcon className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Unique Families</p>
+                <p className="text-2xl font-bold">{uniqueFamilies}</p>
+              </div>
+              <Users className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -199,7 +256,7 @@ export function UserManagement() {
             {t("userManagement")}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            {t("userManagementDescription")}
+            Manage all users across all families in the system.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -214,7 +271,7 @@ export function UserManagement() {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder={t("search")}
+                placeholder="Search by name, email, role, or family ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -233,6 +290,7 @@ export function UserManagement() {
                 <TableRow>
                   <TableHead>{t("name")}</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Family ID</TableHead>
                   <TableHead>{t("userRole")}</TableHead>
                   <TableHead>{t("createdAt")}</TableHead>
                   <TableHead className="w-[70px]">{t("actions")}</TableHead>
@@ -241,7 +299,7 @@ export function UserManagement() {
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {t("noUsers")}
                     </TableCell>
                   </TableRow>
@@ -250,6 +308,11 @@ export function UserManagement() {
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {user.family_id}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.role)} className="flex items-center gap-1 w-fit">
                           {getRoleIcon(user.role)}

@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Get all users in the same family
-    const users = await UserService.getUsersByFamilyId(session.user.family_id);
+    // Get all users in the database (admin can see all users)
+    const users = await UserService.getAllUsers();
     
     // Remove password hashes from response
     const safeUsers = users.map(user => ({
@@ -130,10 +130,15 @@ export async function PUT(request: NextRequest) {
     const validatedData = updateUserSchema.parse(body);
     const { id, email, name, role } = validatedData;
 
-    // Get the user to verify they're in the same family
+    // Get the user to verify they exist
     const targetUser = await UserService.getUserById(id);
-    if (!targetUser || targetUser.family_id !== session.user.family_id) {
+    if (!targetUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Admin can manage users in any family, but warn if different family
+    if (targetUser.family_id !== session.user.family_id) {
+      console.log(`Admin ${session.user.id} managing user ${id} from different family (${targetUser.family_id} vs ${session.user.family_id})`);
     }
 
     // Prevent admin from demoting themselves

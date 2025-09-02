@@ -27,10 +27,12 @@ import {
   CheckCircle, 
   XCircle, 
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Zap
 } from "lucide-react"
 import { useTranslations } from 'next-intl'
 import type { User } from "@/types"
+import { ResendConfig } from "./resend-config"
 
 interface EmailConfig {
   host: string;
@@ -89,12 +91,14 @@ export function NotificationManagement() {
   const [saving, setSaving] = useState(false)
   const [testEmail, setTestEmail] = useState('')
   const [testing, setTesting] = useState(false)
+  const [emailProviders, setEmailProviders] = useState<any>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   useEffect(() => {
     fetchUser()
     fetchConfig()
     fetchHistory()
+    fetchEmailProviders()
   }, [])
 
   const fetchUser = async () => {
@@ -136,6 +140,18 @@ export function NotificationManagement() {
       }
     } catch (error) {
       console.error('Failed to fetch history:', error)
+    }
+  }
+
+  const fetchEmailProviders = async () => {
+    try {
+      const response = await fetch('/api/admin/email/providers')
+      if (response.ok) {
+        const data = await response.json()
+        setEmailProviders(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch email providers:', error)
     }
   }
 
@@ -194,7 +210,11 @@ export function NotificationManagement() {
       })
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Test email sent successfully' })
+        const data = await response.json()
+        const providerText = data.provider ? ` via ${data.provider}` : ''
+        setMessage({ type: 'success', text: data.message || `Test email sent successfully${providerText}` })
+        // Refresh provider status after successful send
+        fetchEmailProviders()
       } else {
         const data = await response.json()
         setMessage({ type: 'error', text: data.error || 'Failed to send test email' })
@@ -217,8 +237,11 @@ export function NotificationManagement() {
       })
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Weekly reports sent to all families' })
+        const activeProvider = emailProviders?.activeProvider
+        const providerText = activeProvider ? ` via ${activeProvider}` : ''
+        setMessage({ type: 'success', text: `Weekly reports sent to all families${providerText}` })
         fetchHistory()
+        fetchEmailProviders()
       } else {
         const data = await response.json()
         setMessage({ type: 'error', text: data.error || 'Failed to send weekly reports' })
@@ -275,11 +298,15 @@ export function NotificationManagement() {
         </div>
       )}
 
-      <Tabs defaultValue="settings" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="settings" className="w-full" onValueChange={() => { fetchEmailProviders() }}>
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="settings">
             <Settings className="h-4 w-4 mr-2" />
-            Settings
+            SMTP
+          </TabsTrigger>
+          <TabsTrigger value="resend">
+            <Zap className="h-4 w-4 mr-2" />
+            Resend
           </TabsTrigger>
           <TabsTrigger value="test">
             <Send className="h-4 w-4 mr-2" />
@@ -484,7 +511,71 @@ export function NotificationManagement() {
           </div>
         </TabsContent>
 
+        <TabsContent value="resend" className="space-y-6">
+          <ResendConfig />
+        </TabsContent>
+
         <TabsContent value="test" className="space-y-6">
+          {/* Email Provider Status */}
+          {emailProviders && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Email Provider Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {emailProviders.providers.map((provider: any) => (
+                    <div 
+                      key={provider.provider}
+                      className={`p-3 rounded-lg border ${
+                        provider.active 
+                          ? 'border-green-200 bg-green-50' 
+                          : provider.configured 
+                          ? 'border-blue-200 bg-blue-50' 
+                          : 'border-gray-200 bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {provider.provider === 'resend' ? (
+                          <Zap className="h-4 w-4" />
+                        ) : (
+                          <Settings className="h-4 w-4" />
+                        )}
+                        <span className="font-medium capitalize">{provider.provider}</span>
+                        {provider.active && (
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                            Active
+                          </span>
+                        )}
+                        {provider.configured && !provider.active && (
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            Configured
+                          </span>
+                        )}
+                        {!provider.configured && (
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                            Not Configured
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {emailProviders.activeProvider && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Active Provider:</strong> {emailProviders.activeProvider} - All test emails and notifications will be sent using this service.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Test Email Configuration */}
           <Card>
             <CardHeader>
               <CardTitle>Test Email Configuration</CardTitle>
@@ -504,7 +595,7 @@ export function NotificationManagement() {
               <div className="flex gap-3">
                 <Button 
                   onClick={() => sendTestEmail('connection')}
-                  disabled={testing || !testEmail || !isConfigured}
+                  disabled={testing || !testEmail || !emailProviders?.activeProvider}
                   variant="outline"
                 >
                   {testing ? 'Sending...' : 'Test Connection'}
@@ -512,18 +603,27 @@ export function NotificationManagement() {
                 
                 <Button 
                   onClick={() => sendTestEmail('weekly-report')}
-                  disabled={testing || !testEmail || !isConfigured}
+                  disabled={testing || !testEmail || !emailProviders?.activeProvider}
                   variant="outline"
                 >
                   {testing ? 'Sending...' : 'Test Weekly Report'}
                 </Button>
               </div>
               
-              {!isConfigured && (
+              {emailProviders && !emailProviders.anyConfigured && (
                 <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
                   <span className="text-sm text-amber-800">
-                    Email configuration required before testing
+                    No email service configured. Please configure SMTP or Resend first.
+                  </span>
+                </div>
+              )}
+
+              {emailProviders && !emailProviders.activeProvider && emailProviders.anyConfigured && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm text-amber-800">
+                    Email service configured but no active provider selected. Please set an active provider in the SMTP or Resend tabs.
                   </span>
                 </div>
               )}
@@ -542,12 +642,24 @@ export function NotificationManagement() {
                 
                 <Button 
                   onClick={sendWeeklyReports}
-                  disabled={!isConfigured}
+                  disabled={!emailProviders?.activeProvider}
                   className="w-full"
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Send Weekly Reports Now
                 </Button>
+
+                {emailProviders && !emailProviders.activeProvider && (
+                  <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mt-3">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm text-amber-800">
+                      {emailProviders.anyConfigured 
+                        ? 'No active email provider selected. Please set an active provider in the SMTP or Resend tabs.'
+                        : 'No email service configured. Please configure SMTP or Resend first.'
+                      }
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -151,13 +151,18 @@ open http://localhost:3000
 - **Member Statistics**: Display total family member count and status indicators
 - **User Identification**: Clear marking of current user in member listings
 
-### 8. Weekly Email Reports
+### 8. Weekly Email Reports & Notifications
 - **Automated Reports**: Weekly financial summaries sent via email with configurable scheduling
-- **SMTP Configuration**: Admin-level email server setup with connection testing
+- **Unified Email Service**: Support for both SMTP and Resend email providers with seamless switching
+- **SMTP Configuration**: Traditional email server setup with connection testing and validation
+- **Resend Integration**: Modern email delivery service with excellent deliverability and developer-friendly setup
+- **Provider Management**: Easy switching between email providers with real-time status monitoring
 - **Report Customization**: Choose day, time, timezone, and include charts in reports
-- **Notification History**: Track all sent reports with success/failure status
+- **Notification History**: Track all sent reports with success/failure status and provider information
 - **User Preferences**: Individual opt-in/opt-out for weekly report subscriptions
 - **Multi-language Support**: Email templates available in English and Spanish
+- **Test Functionality**: Send test emails to verify configuration before scheduling reports
+- **Provider Status**: Visual indicators showing active provider and configuration status
 
 ### 9. Debt Amortization & Payment Tracking
 - **Loan Configuration**: Set up APR rate (TAE), payment amounts, and loan terms for debt accounts
@@ -169,15 +174,20 @@ open http://localhost:3000
 - **Payment History**: Detailed transaction history distinguishing between automatic updates, manual entries, and payments
 
 ### 7. User Management & Administration
-- **Comprehensive User Management**: Full CRUD operations for family user accounts through admin interface
-- **Admin Dashboard**: Dedicated administrative section with tabbed interface for system management
-- **User Creation**: Administrators can create new family member accounts with email, name, role, and password
-- **User Editing**: Modify existing user details including email, name, role, and optional password updates
-- **User Deletion**: Remove family members with proper safeguards (cannot delete self or last administrator)
-- **Role Management**: Three-tier system (Administrator, User, Guest) with role assignment and modification
-- **User Search & Filtering**: Search users by name or email with real-time filtering
+- **System-Wide User Management**: View and manage all users across all families in the database with comprehensive oversight
+- **Admin Dashboard**: Dedicated administrative section with tabbed interface for system management and multi-service configuration
+- **Global User Operations**: Full CRUD operations for all user accounts in the system, not just family members
+- **Cross-Family Management**: Administrators can manage users from any family with proper logging and safeguards
+- **User Statistics Dashboard**: Real-time statistics showing total users, administrators, regular users, and unique families
+- **Enhanced User Interface**: Improved table with family ID identification, advanced search, and role management
+- **User Creation**: Create new user accounts with email, name, role, family assignment, and secure password
+- **User Editing**: Modify existing user details including cross-family operations with validation
+- **User Deletion**: Remove users with intelligent safeguards (prevent deleting last admin per family)
+- **Role Management**: Three-tier system (Administrator, User, Guest) with global role assignment capabilities
+- **Advanced Search & Filtering**: Search users by name, email, role, or family ID with real-time filtering
+- **Family Identification**: Clear family ID badges for easy identification of user family membership
 - **Security Validations**: Email uniqueness checking, password strength requirements, and role change restrictions
-- **Safe Operations**: Protection against self-deletion and administrator role removal safeguards
+- **Safe Operations**: Protection against self-deletion and intelligent administrator role removal safeguards
 
 ## 🎛️ User Interface Requirements
 
@@ -185,6 +195,12 @@ open http://localhost:3000
 - Clean, minimalist design using Tailwind CSS + shadcn/ui
 - Responsive design (desktop and mobile friendly)
 - Sidebar navigation with main sections: Dashboard, Accounts, History, Backups, Members, Admin, Settings
+
+### Enhanced UI Components
+- **Portal-Based Dropdowns**: Select components render outside container bounds to prevent clipping issues
+- **Improved Select Components**: Native dropdown implementation with proper positioning and accessibility
+- **Real-time Value Display**: Select components show current values immediately on page load
+- **Floating Menus**: Dropdown menus position correctly regardless of table or container overflow constraints
 
 ### Account Identification
 - Display account name prominently
@@ -256,10 +272,17 @@ open http://localhost:3000
 - **Debt Amortization System**: Advanced loan tracking with automatic monthly interest application
 - **Payment Scheduling**: French method and interest-only payment calculations with full amortization schedules
 - **Administrative User Management**: Complete user administration system with create, read, update, delete operations
-- **Admin Interface**: Tabbed administrative dashboard combining notification management and user administration
-- **User Management API**: RESTful endpoints for user CRUD operations with proper authentication and authorization
+- **System-Wide User Oversight**: Global user management across all families with comprehensive statistics dashboard
+- **Cross-Family Administration**: Administrators can manage users from any family with proper safeguards and logging
+- **Enhanced User Interface**: Improved select components with portal-based rendering and proper positioning
+- **Real-Time UI Updates**: Select dropdowns show current values immediately on page load with proper initialization
+- **Resend Email Integration**: Modern email delivery service integration with excellent deliverability and developer experience
+- **Unified Email Service**: Seamless switching between SMTP and Resend providers with visual status indicators
+- **Admin Interface**: Enhanced tabbed administrative dashboard with email provider management and user administration
+- **User Management API**: RESTful endpoints for user CRUD operations with global scope and proper authentication
 - **Form Validation**: Comprehensive client and server-side validation for user creation and editing
 - **Password Management**: Secure password handling with optional updates and strength requirements
+- **UI Component Improvements**: Portal-based dropdowns prevent clipping issues and improve user experience
 
 ## 🎯 Success Criteria
 - ✅ Family members can easily identify and manage all account types including debts
@@ -314,10 +337,15 @@ ENCRYPTION_KEY=your-32-char-encryption-key-here
 SESSION_SECRET=your-32-char-session-secret-here
 
 # Optional: Email Notifications (for weekly reports)
+# SMTP Configuration (traditional email server)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
+
+# Resend Configuration (modern email service - alternative to SMTP)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+RESEND_FROM=noreply@yourdomain.com
 
 # Optional: Cloud Storage (for backup feature)
 DROPBOX_CLIENT_ID=your-dropbox-client-id
@@ -340,6 +368,21 @@ To enable automatic backup uploads:
 3. Create OAuth 2.0 credentials
 4. Add redirect URI: `https://your-domain.com/api/auth/google-drive/callback`
 5. Add client ID and secret to environment variables
+
+### Email Service Setup (Optional)
+Choose between SMTP or Resend for email notifications:
+
+**Resend (Recommended)**:
+1. Create account at [Resend](https://resend.com)
+2. Verify your domain (or use `onboarding@resend.dev` for testing)
+3. Generate API key in dashboard
+4. Add `RESEND_API_KEY` and `RESEND_FROM` to environment variables
+5. Configure via Admin > Notifications > Resend tab
+
+**SMTP (Traditional)**:
+1. Use Gmail with app password or any SMTP server
+2. Add SMTP credentials to environment variables
+3. Configure via Admin > Notifications > SMTP tab
 
 ## 📋 Future Enhancements
 - Budget tracking and financial goals

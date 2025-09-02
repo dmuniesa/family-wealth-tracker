@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth';
-import { getEmailService } from '@/lib/email-service';
+import { getUnifiedEmailService } from '@/lib/unified-email-service';
 import { NotificationScheduler } from '@/lib/notification-scheduler';
 
 const testEmailSchema = z.object({
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, email, familyId } = testEmailSchema.parse(body);
 
-    const emailService = getEmailService();
+    const emailService = getUnifiedEmailService();
     
     if (!emailService.isConfigured()) {
       return NextResponse.json(
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let result: { success: boolean; error?: string };
+    let result: { success: boolean; error?: string; provider?: string };
 
     if (type === 'connection') {
       // Test basic email connection
@@ -56,8 +56,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (result.success) {
+      const activeProvider = await emailService.getActiveProvider();
       return NextResponse.json({
-        message: 'Test email sent successfully'
+        message: `Test email sent successfully via ${activeProvider || 'unknown'}`,
+        provider: activeProvider
       });
     } else {
       return NextResponse.json(

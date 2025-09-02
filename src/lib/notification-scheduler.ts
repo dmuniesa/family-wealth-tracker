@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { WeeklyReportService, type WeeklyReportData } from './weekly-report-service';
 import { WeeklyReportTemplate, type EmailTemplateOptions } from './email-templates/weekly-report-template';
-import { getEmailService } from './email-service';
+import { getUnifiedEmailService } from './unified-email-service';
 import { SettingsService } from './settings-service';
 import { amortizationService } from './amortization-service';
 import { getDatabase } from './database';
@@ -73,7 +73,7 @@ export class NotificationScheduler {
 
   async sendWeeklyReportsToAllFamilies(): Promise<void> {
     try {
-      const emailService = getEmailService();
+      const emailService = getUnifiedEmailService();
       
       // Check if email service is configured
       if (!emailService.isConfigured()) {
@@ -127,7 +127,7 @@ export class NotificationScheduler {
       const { subject, html, text } = WeeklyReportTemplate.generate(reportData, options);
 
       // Send email
-      const emailService = getEmailService();
+      const emailService = getUnifiedEmailService();
       const result = await emailService.sendEmail({
         to: recipients,
         subject,
@@ -200,7 +200,7 @@ export class NotificationScheduler {
       const testSubject = `[TEST] ${subject}`;
 
       // Send email
-      const emailService = getEmailService();
+      const emailService = getUnifiedEmailService();
       return await emailService.sendEmail({
         to: testEmail,
         subject: testSubject,
