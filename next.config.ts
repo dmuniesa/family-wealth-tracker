@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Compression
   compress: true,
+  // Experimental features for better client-side rendering
+  experimental: {
+    optimizePackageImports: ['@radix-ui/react-dropdown-menu', '@radix-ui/react-dialog', 'lucide-react'],
+  },
   // Disable strict linting for production builds
   eslint: {
     ignoreDuringBuilds: true,
