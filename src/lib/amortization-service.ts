@@ -1,5 +1,6 @@
 import { Account } from '@/types';
 import { getDatabase } from '@/lib/database';
+import { systemLogger } from './system-logger';
 
 export interface AmortizationPayment {
   month: number;
@@ -271,6 +272,8 @@ export class AmortizationService {
    * Apply monthly interest and update debt balance
    */
   async applyMonthlyUpdate(accountId: number): Promise<{ success: boolean; newBalance: number; interestAdded: number; error?: string }> {
+    const timer = systemLogger.createTimer('debt_update', 'apply_monthly_update', undefined, undefined, { accountId });
+    
     try {
       const db = await getDatabase();
       
@@ -289,11 +292,15 @@ export class AmortizationService {
       `, [accountId]) as Account & { current_balance: number };
 
       if (!account) {
-        return { success: false, newBalance: 0, interestAdded: 0, error: 'Account not found or not a debt account' };
+        const error = 'Account not found or not a debt account';
+        await timer.error(error, undefined, { accountId });
+        return { success: false, newBalance: 0, interestAdded: 0, error };
       }
 
       if (!account.auto_update_enabled || !account.apr_rate) {
-        return { success: false, newBalance: account.current_balance, interestAdded: 0, error: 'Auto-update not enabled or APR not set' };
+        const error = 'Auto-update not enabled or APR not set';
+        await timer.error(error, undefined, { accountId, accountName: account.name });
+        return { success: false, newBalance: account.current_balance, interestAdded: 0, error };
       }
 
       // Calculate the next payment date based on loan start date
@@ -344,9 +351,26 @@ export class AmortizationService {
         WHERE id = ?
       `, [nextPaymentDate.toISOString().split('T')[0], newRemainingMonths, accountId]);
 
+      // Log successful update
+      await timer.success(
+        `Applied monthly update for account "${account.name}": €${interestAdded.toFixed(2)} interest added`,
+        { 
+          accountId,
+          accountName: account.name,
+          familyId: account.family_id,
+          oldBalance: account.current_balance,
+          newBalance,
+          interestAdded,
+          remainingMonths: newRemainingMonths,
+          aprRate: account.apr_rate,
+          paymentDate: nextPaymentDate.toISOString().split('T')[0]
+        }
+      );
+
       return { success: true, newBalance, interestAdded };
     } catch (error) {
       console.error('Error applying monthly update:', error);
+      await timer.error(error, 'Database error during monthly update');
       return { success: false, newBalance: 0, interestAdded: 0, error: 'Database error' };
     }
   }
@@ -407,6 +431,8 @@ export class AmortizationService {
    * Run monthly updates for all eligible debt accounts
    */
   async runMonthlyUpdatesForFamily(familyId: number): Promise<{ updated: number; errors: string[] }> {
+    const timer = systemLogger.createTimer('debt_update', 'monthly_updates_family', familyId, undefined, { familyId });
+    
     try {
       const db = await getDatabase();
       
@@ -431,9 +457,33 @@ export class AmortizationService {
         }
       }
 
+      // Log completion
+      if (updated > 0 || errors.length > 0) {
+        await timer.success(
+          `Monthly debt updates completed for family ${familyId}: ${updated} accounts updated, ${errors.length} errors`,
+          {
+            familyId,
+            eligibleAccounts: eligibleDebts.length,
+            updatedAccounts: updated,
+            errorCount: errors.length,
+            errors: errors.length > 0 ? errors : undefined
+          }
+        );
+      } else {
+        await timer.success(
+          `No debt updates needed for family ${familyId}`,
+          {
+            familyId,
+            eligibleAccounts: eligibleDebts.length,
+            reason: 'No accounts due for update'
+          }
+        );
+      }
+
       return { updated, errors };
     } catch (error) {
       console.error('Error running monthly updates:', error);
+      await timer.error(error, 'Database error during family monthly updates');
       return { updated: 0, errors: ['Database error'] };
     }
   }

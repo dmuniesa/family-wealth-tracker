@@ -2,6 +2,7 @@ import cron from 'node-cron'
 import { BackupService } from './backup-service'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { systemLogger } from './system-logger'
 
 export type BackupFrequency = 'off' | 'daily' | 'weekly' | 'monthly'
 
@@ -65,6 +66,11 @@ export class BackupScheduler {
     if (!cronExpression) return
 
     this.currentTask = cron.schedule(cronExpression, async () => {
+      const timer = systemLogger.createTimer('backup', 'scheduled_backup', undefined, undefined, {
+        frequency: config.frequency,
+        maxBackups: config.maxBackups
+      });
+      
       try {
         console.log(`Running scheduled backup at ${new Date().toISOString()}`)
         
@@ -79,8 +85,15 @@ export class BackupScheduler {
         await this.saveConfig(updatedConfig)
         
         console.log('Scheduled backup completed successfully')
+        await timer.success('Scheduled backup completed successfully', {
+          frequency: config.frequency,
+          maxBackups: config.maxBackups,
+          lastRun: updatedConfig.lastRun,
+          nextRun: updatedConfig.nextRun
+        });
       } catch (error) {
         console.error('Scheduled backup failed:', error)
+        await timer.error(error, 'Scheduled backup failed');
       }
     }, {
       scheduled: true,

@@ -156,6 +156,7 @@ async function initializeDatabase(db: Database) {
   `);
   
   await migrateAccountsTableForAmortization(db);
+  await migrateDatabaseForSystemLogs(db);
 }
 
 async function migrateUsersTableForRoles(db: Database) {
@@ -283,6 +284,67 @@ async function migrateBalancesTableForAmortization(db: Database) {
   } catch (error) {
     await db.run('ROLLBACK');
     console.error('Error migrating balances table for amortization:', error);
+    throw error;
+  }
+}
+
+async function migrateDatabaseForSystemLogs(db: Database) {
+  try {
+    const tableInfo = await db.all(`
+      SELECT name FROM sqlite_master WHERE type='table' AND name='system_logs'
+    `) as any[];
+    
+    const hasSystemLogsTable = tableInfo.length > 0;
+    
+    if (!hasSystemLogsTable) {
+      console.log('Creating system_logs table...');
+      
+      await db.run('BEGIN TRANSACTION');
+      
+      // Create system logs table
+      await db.run(`
+        CREATE TABLE system_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          level TEXT CHECK(level IN ('info', 'warn', 'error', 'success')) NOT NULL,
+          category TEXT CHECK(category IN ('debt_update', 'email', 'backup', 'system', 'auth')) NOT NULL,
+          operation TEXT NOT NULL,
+          details TEXT,
+          family_id INTEGER,
+          user_id INTEGER,
+          duration_ms INTEGER,
+          status TEXT CHECK(status IN ('started', 'completed', 'failed')) NOT NULL,
+          error_message TEXT,
+          metadata TEXT, -- JSON string for additional data
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (family_id) REFERENCES users(family_id),
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `);
+      
+      // Create indexes for efficient querying
+      await db.run(`
+        CREATE INDEX IF NOT EXISTS idx_system_logs_timestamp ON system_logs(timestamp)
+      `);
+      await db.run(`
+        CREATE INDEX IF NOT EXISTS idx_system_logs_category ON system_logs(category)
+      `);
+      await db.run(`
+        CREATE INDEX IF NOT EXISTS idx_system_logs_status ON system_logs(status)
+      `);
+      await db.run(`
+        CREATE INDEX IF NOT EXISTS idx_system_logs_family_id ON system_logs(family_id)
+      `);
+      await db.run(`
+        CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(level)
+      `);
+      
+      await db.run('COMMIT');
+      console.log('Successfully created system_logs table with indexes');
+    }
+  } catch (error) {
+    await db.run('ROLLBACK');
+    console.error('Error creating system_logs table:', error);
     throw error;
   }
 }

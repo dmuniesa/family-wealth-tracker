@@ -7,6 +7,7 @@ import { amortizationService } from './amortization-service';
 import { getDatabase } from './database';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { systemLogger } from './system-logger';
 
 export interface NotificationHistory {
   id: string;
@@ -109,6 +110,8 @@ export class NotificationScheduler {
     familyId: number, 
     options: EmailTemplateOptions
   ): Promise<{ success: boolean; error?: string }> {
+    const timer = systemLogger.createTimer('email', 'send_weekly_report', familyId, undefined, { familyId, options });
+    
     try {
       // Generate report data
       const reportData = await WeeklyReportService.generateWeeklyReport(familyId);
@@ -151,8 +154,28 @@ export class NotificationScheduler {
 
       if (result.success) {
         console.log(`Weekly report sent successfully to family ${familyId} (${recipients.length} recipients)`);
+        await timer.success(
+          `Weekly report sent to family ${familyId}: ${recipients.length} recipients`,
+          {
+            familyId,
+            recipientCount: recipients.length,
+            recipients: recipients.map(r => r.email),
+            reportPeriod: reportData.period,
+            includeCharts: options.includeCharts,
+            customMessage: options.customMessage
+          }
+        );
       } else {
         console.error(`Failed to send weekly report to family ${familyId}:`, result.error);
+        await timer.error(
+          result.error || 'Unknown email error',
+          `Failed to send weekly report to family ${familyId}`,
+          {
+            familyId,
+            recipientCount: recipients.length,
+            emailError: result.error
+          }
+        );
       }
 
       return result;
@@ -173,6 +196,7 @@ export class NotificationScheduler {
       });
 
       console.error(`Error sending weekly report to family ${familyId}:`, error);
+      await timer.error(error, `Error generating or sending weekly report for family ${familyId}`);
       return { success: false, error: errorMessage };
     }
   }
@@ -235,6 +259,8 @@ export class NotificationScheduler {
   }
 
   async runMonthlyDebtUpdates(): Promise<{ totalUpdated: number; errors: string[] }> {
+    const timer = systemLogger.createTimer('debt_update', 'monthly_updates_all_families', undefined, undefined, { scope: 'all_families' });
+    
     try {
       console.log('Starting monthly debt updates for all families...');
       const db = await getDatabase();
@@ -263,9 +289,22 @@ export class NotificationScheduler {
       }
 
       console.log(`Monthly debt updates completed: ${totalUpdated} accounts updated across ${familyIds.length} families`);
+      
+      await timer.success(
+        `Monthly debt updates completed: ${totalUpdated} accounts updated across ${familyIds.length} families`,
+        {
+          totalFamilies: familyIds.length,
+          totalUpdated,
+          errorCount: allErrors.length,
+          familyIds,
+          errors: allErrors.length > 0 ? allErrors : undefined
+        }
+      );
+      
       return { totalUpdated, errors: allErrors };
     } catch (error) {
       console.error('Error during monthly debt updates:', error);
+      await timer.error(error, 'Critical error during monthly debt updates for all families');
       return { totalUpdated: 0, errors: [error instanceof Error ? error.message : 'Unknown error'] };
     }
   }

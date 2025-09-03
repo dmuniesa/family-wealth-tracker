@@ -9,11 +9,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { Mail, Users, Shield, Settings } from "lucide-react"
+import { Mail, Users, Shield, Settings, FileText } from "lucide-react"
 import { useTranslations } from 'next-intl'
 import { UserManagement } from "@/components/admin/user-management"
 import { NotificationManagement } from "@/components/admin/notification-management"
 import { RegistrationManagement } from "@/components/admin/registration-management"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 function AdminContent() {
   const t = useTranslations("navigation")
@@ -30,6 +32,12 @@ function AdminContent() {
               Administrative settings and user management
             </p>
           </div>
+          <Link href="/admin/logs">
+            <Button variant="outline" className="ml-auto">
+              <FileText className="h-4 w-4 mr-2" />
+              System Logs
+            </Button>
+          </Link>
         </div>
 
         <Tabs defaultValue="notifications" className="space-y-6">
