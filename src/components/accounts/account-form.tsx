@@ -158,7 +158,7 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('accounts.category')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={t('forms.selectCategory')} />
@@ -181,7 +181,7 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('accounts.currency')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={t('forms.selectCurrency')} />
@@ -352,7 +352,7 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('debt.paymentType')}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder={t('debt.selectPaymentType')} />

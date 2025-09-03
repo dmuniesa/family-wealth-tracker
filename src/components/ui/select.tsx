@@ -17,6 +17,7 @@ interface SelectContextValue {
   setSelectedLabel: (label: string) => void
   registerOption: (value: string, label: string) => void
   triggerRef: React.RefObject<HTMLButtonElement>
+  disabled?: boolean
 }
 
 const SelectContext = React.createContext<SelectContextValue | null>(null)
@@ -59,10 +60,15 @@ const Select: React.FC<SelectProps> = ({
   }, [])
 
   const handleValueChange = React.useCallback((newValue: string) => {
+    // First update internal value if needed
     if (controlledValue === undefined) {
       setInternalValue(newValue)
     }
+    
+    // Call the external onChange handler (from react-hook-form)
     onValueChange?.(newValue)
+    
+    // Close the select
     closeSelect()
   }, [controlledValue, onValueChange, closeSelect])
 
@@ -81,8 +87,17 @@ const Select: React.FC<SelectProps> = ({
   React.useEffect(() => {
     if (value && optionsRegistry[value]) {
       setSelectedLabel(optionsRegistry[value])
+    } else if (!value) {
+      setSelectedLabel("")
     }
   }, [value, optionsRegistry])
+  
+  // Force update internal value when controlled value changes
+  React.useEffect(() => {
+    if (controlledValue !== undefined && controlledValue !== internalValue) {
+      setInternalValue(controlledValue)
+    }
+  }, [controlledValue, internalValue])
 
   // Close on escape key
   React.useEffect(() => {
@@ -100,15 +115,16 @@ const Select: React.FC<SelectProps> = ({
 
   const contextValue = React.useMemo(() => ({
     isOpen,
-    setIsOpen: disabled ? () => {} : setIsOpen,
+    setIsOpen,
     value,
     onValueChange: handleValueChange,
     closeSelect,
     selectedLabel,
     setSelectedLabel,
     registerOption,
-    triggerRef
-  }), [isOpen, setIsOpen, value, handleValueChange, closeSelect, disabled, selectedLabel, setSelectedLabel, registerOption, triggerRef])
+    triggerRef,
+    disabled
+  }), [isOpen, setIsOpen, value, handleValueChange, closeSelect, selectedLabel, registerOption, disabled])
 
   return (
     <SelectContext.Provider value={contextValue}>
@@ -153,8 +169,9 @@ SelectValue.displayName = "SelectValue"
 const SelectTrigger = React.forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ className, children, onClick, disabled, ...props }, ref) => {
-  const { isOpen, setIsOpen, triggerRef } = useSelect()
+>(({ className, children, onClick, disabled: propDisabled, ...props }, ref) => {
+  const { isOpen, setIsOpen, triggerRef, disabled: contextDisabled } = useSelect()
+  const disabled = propDisabled || contextDisabled
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -242,11 +259,14 @@ const SelectContent = React.forwardRef<
 
     if (isOpen) {
       // Use setTimeout to avoid immediate closure on trigger click
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside)
-      }, 0)
+      }, 100) // Increased timeout to give SelectItem click priority
       
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+      return () => {
+        clearTimeout(timeoutId)
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
     }
   }, [isOpen, closeSelect, triggerRef])
 
@@ -282,18 +302,20 @@ const SelectContent = React.forwardRef<
     <div
       ref={contentRef}
       className={cn(
-        "fixed z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg",
+        "fixed z-[9999] max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg",
         className
       )}
       style={{
         top: contentPosition.top,
         left: contentPosition.left,
         width: contentPosition.width,
-        minWidth: contentPosition.width
+        minWidth: contentPosition.width,
+        pointerEvents: 'auto'
       }}
+      role="listbox"
       {...props}
     >
-      <div className="overflow-y-auto max-h-96 p-1">
+      <div className="overflow-y-auto max-h-96 p-1" style={{ pointerEvents: 'auto' }}>
         {children}
       </div>
     </div>
@@ -329,9 +351,23 @@ const SelectItem = React.forwardRef<
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (disabled) return
-    onValueChange?.(value)
-    setSelectedLabel(label)
+    
+    // Stop all event propagation immediately
+    event.stopPropagation()
+    event.preventDefault()
+    event.nativeEvent.stopImmediatePropagation()
+    
+    // Use setTimeout to ensure this happens after any outside click handlers
+    setTimeout(() => {
+      onValueChange?.(value)
+      setSelectedLabel(label)
+    }, 0)
+    
     onClick?.(event)
+  }
+
+  const handleMouseEnter = () => {
+    // Mouse enter handler for future use
   }
 
   return (
@@ -344,14 +380,21 @@ const SelectItem = React.forwardRef<
         className
       )}
       onClick={handleClick}
+      onMouseDown={handleClick}
+      onMouseEnter={handleMouseEnter}
       data-select-value={value}
       tabIndex={disabled ? -1 : 0}
+      role="option"
+      aria-selected={isSelected}
+      style={{ pointerEvents: disabled ? 'none' : 'auto', zIndex: 1 }}
       {...props}
     >
       <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
         {isSelected && <Check className="h-4 w-4" />}
       </span>
-      <span className="truncate">{children}</span>
+      <span className="truncate" style={{ pointerEvents: 'none' }}>
+        {children}
+      </span>
     </div>
   )
 })
