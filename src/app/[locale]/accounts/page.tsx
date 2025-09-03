@@ -468,6 +468,8 @@ export default function AccountsPage() {
             {recordBalanceAccount && (
               <BalanceForm
                 accounts={[recordBalanceAccount]}
+                hideAccountSelection={true}
+                defaultAmount={recordBalanceAccount.current_balance || 0}
                 onSuccess={() => {
                   setShowRecordBalance(false)
                   setRecordBalanceAccount(null)

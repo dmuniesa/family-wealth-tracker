@@ -47,9 +47,11 @@ interface BalanceFormProps {
   onCancel?: () => void
   initialData?: Partial<BalanceFormValues & { id: number }>
   isEdit?: boolean
+  hideAccountSelection?: boolean
+  defaultAmount?: number
 }
 
-export function BalanceForm({ accounts, onSuccess, onCancel, initialData, isEdit = false }: BalanceFormProps) {
+export function BalanceForm({ accounts, onSuccess, onCancel, initialData, isEdit = false, hideAccountSelection = false, defaultAmount }: BalanceFormProps) {
   const t = useTranslations()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,7 +62,7 @@ export function BalanceForm({ accounts, onSuccess, onCancel, initialData, isEdit
     resolver: zodResolver(balanceSchema),
     defaultValues: {
       account_id: initialData?.account_id || (accounts.length === 1 ? accounts[0].id : undefined),
-      amount: initialData?.amount || 0,
+      amount: initialData?.amount || defaultAmount || 0,
       date: initialData?.date || format(new Date(), 'yyyy-MM-dd'),
     },
   })
@@ -103,33 +105,41 @@ export function BalanceForm({ accounts, onSuccess, onCancel, initialData, isEdit
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="account_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('history.account')}</FormLabel>
-                  <Select 
-                    onValueChange={(value) => field.onChange(parseInt(value))} 
-                    value={field.value ? field.value.toString() : ""}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('forms.selectAccountPlaceholder')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {accounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id.toString()}>
-                          {account.name} ({account.currency})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!hideAccountSelection && (
+              <FormField
+                control={form.control}
+                name="account_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('history.account')}</FormLabel>
+                    <Select 
+                      onValueChange={(value) => field.onChange(parseInt(value))} 
+                      value={field.value ? field.value.toString() : ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('forms.selectAccountPlaceholder')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {accounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id.toString()}>
+                            {account.name} ({account.currency})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {hideAccountSelection && accounts.length === 1 && (
+              <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded-md">
+                <strong>Account:</strong> {accounts[0].name} ({accounts[0].currency})
+              </div>
+            )}
 
             <FormField
               control={form.control}
