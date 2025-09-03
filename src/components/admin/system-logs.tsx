@@ -45,7 +45,7 @@ const STATUS_COLORS: Record<string, string> = {
   failed: 'bg-red-100 text-red-800',
 };
 
-export default function SystemLogsPage() {
+export function SystemLogs() {
   const [logs, setLogs] = useState<SystemLogEntry[]>([]);
   const [stats, setStats] = useState<LogStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,19 +147,19 @@ export default function SystemLogsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">System Logs</h1>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">System Logs</h2>
         <div className="flex gap-2">
-          <Button onClick={() => setShowFilters(!showFilters)} variant="outline">
+          <Button onClick={() => setShowFilters(!showFilters)} variant="outline" size="sm">
             <Filter className="w-4 h-4 mr-2" />
             Filters
           </Button>
-          <Button onClick={fetchLogs} variant="outline">
+          <Button onClick={fetchLogs} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
-          <Button onClick={handleCleanupLogs} variant="outline">
+          <Button onClick={handleCleanupLogs} variant="outline" size="sm">
             <Trash2 className="w-4 h-4 mr-2" />
             Cleanup
           </Button>
@@ -168,7 +168,7 @@ export default function SystemLogsPage() {
 
       {/* Statistics */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Total Logs</CardTitle>
@@ -225,7 +225,7 @@ export default function SystemLogsPage() {
 
       {/* Filters */}
       {showFilters && (
-        <Card className="mb-6">
+        <Card>
           <CardHeader>
             <CardTitle>Filters</CardTitle>
           </CardHeader>
@@ -313,6 +313,7 @@ export default function SystemLogsPage() {
                   });
                 }}
                 variant="outline"
+                size="sm"
               >
                 Clear Filters
               </Button>
@@ -325,7 +326,7 @@ export default function SystemLogsPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            System Logs ({total} total)
+            Recent Logs ({total} total)
           </CardTitle>
         </CardHeader>
         <CardContent>
