@@ -73,27 +73,44 @@ export class AmortizationService {
       nextPaymentDate = new Date(lastUpdate);
       nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
     } else {
-      // First payment: calculate from loan start date
-      nextPaymentDate = new Date(loanStartDate);
-      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+      // No previous updates: calculate if payment is due this month
+      const currentMonthPaymentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDayThisMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      const actualPaymentDayThisMonth = Math.min(paymentDayOfMonth, lastDayThisMonth);
+      currentMonthPaymentDate.setDate(actualPaymentDayThisMonth);
+      
+      if (today >= currentMonthPaymentDate) {
+        // Payment is due this month (today or past)
+        nextPaymentDate = currentMonthPaymentDate;
+      } else {
+        // Payment is due next month
+        nextPaymentDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+      }
     }
     
-    // Handle month-end dates (28, 29, 30, 31)
-    // Set to day 1 first to avoid date overflow issues
-    nextPaymentDate.setDate(1);
-    
-    const targetMonth = nextPaymentDate.getMonth();
-    const targetYear = nextPaymentDate.getFullYear();
-    
-    // Get the last day of the target month
-    const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-    
-    // Use the original payment day or the last day of month, whichever is smaller
-    const actualPaymentDay = Math.min(paymentDayOfMonth, lastDayOfMonth);
-    
-    nextPaymentDate.setDate(actualPaymentDay);
-    
-    return nextPaymentDate;
+    // Only adjust for month-end dates if we're calculating a future month
+    // If we already have the exact current month payment date, don't modify it
+    if (!lastAutoUpdate && today >= nextPaymentDate) {
+      // Payment is overdue or due today, use the exact date we calculated
+      return nextPaymentDate;
+    } else {
+      // Handle month-end dates (28, 29, 30, 31) for future payments
+      // Set to day 1 first to avoid date overflow issues
+      nextPaymentDate.setDate(1);
+      
+      const targetMonth = nextPaymentDate.getMonth();
+      const targetYear = nextPaymentDate.getFullYear();
+      
+      // Get the last day of the target month
+      const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      
+      // Use the original payment day or the last day of month, whichever is smaller
+      const actualPaymentDay = Math.min(paymentDayOfMonth, lastDayOfMonth);
+      
+      nextPaymentDate.setDate(actualPaymentDay);
+      
+      return nextPaymentDate;
+    }
   }
 
   /**
@@ -143,7 +160,10 @@ export class AmortizationService {
       );
     }
 
-    const startDate = new Date();
+    // Start from today for the amortization table display
+    const today = new Date();
+    const loanStartDate = account.loan_start_date ? new Date(account.loan_start_date) : today;
+    const paymentDayOfMonth = loanStartDate.getDate();
     
     for (let month = 1; month <= account.remaining_months && remainingBalance > 0.01; month++) {
       const interestPayment = remainingBalance * monthlyRate;
@@ -170,8 +190,17 @@ export class AmortizationService {
       cumulativeInterest += interestPayment;
       cumulativePrincipal += principalPayment;
 
-      const paymentDate = new Date(startDate);
-      paymentDate.setMonth(startDate.getMonth() + month - 1);
+      // Calculate payment date starting from today, but respecting the loan start date day
+      const paymentDate = new Date(today.getFullYear(), today.getMonth() + month - 1, 1);
+      
+      // Get the last day of the target month
+      const targetYear = paymentDate.getFullYear();
+      const targetMonth = paymentDate.getMonth();
+      const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      
+      // Use the original payment day or the last day of month, whichever is smaller
+      const actualPaymentDay = Math.min(paymentDayOfMonth, lastDayOfMonth);
+      paymentDate.setDate(actualPaymentDay);
 
       payments.push({
         month,
