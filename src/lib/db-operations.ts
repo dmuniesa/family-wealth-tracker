@@ -175,14 +175,45 @@ export class AccountService {
       // Create initial balance if auto update is enabled and original balance is provided
       if (amortizationData.autoUpdateEnabled && amortizationData.originalBalance && amortizationData.originalBalance > 0) {
         const startDate = amortizationData.loanStartDate || new Date().toISOString().split('T')[0];
+        
+        // Calculate current balance based on months elapsed since loan start
+        let currentBalance = amortizationData.originalBalance;
+        const currentDate = new Date();
+        const loanStartDate = new Date(startDate);
+        const monthsElapsed = (currentDate.getFullYear() - loanStartDate.getFullYear()) * 12 + 
+                             (currentDate.getMonth() - loanStartDate.getMonth());
+        
+        if (monthsElapsed > 0 && amortizationData.aprRate && amortizationData.monthlyPayment) {
+          // Calculate balance after all elapsed payments
+          const monthlyRate = amortizationData.aprRate / 12;
+          
+          for (let month = 0; month < monthsElapsed; month++) {
+            if (currentBalance <= 0) break;
+            
+            const interestPayment = currentBalance * monthlyRate;
+            
+            if (amortizationData.paymentType === 'interest_only') {
+              // Interest-only: balance stays the same, just pay interest
+              // No principal payment, so balance doesn't change
+            } else {
+              // Fixed payment: principal + interest
+              const principalPayment = Math.min(
+                amortizationData.monthlyPayment - interestPayment, 
+                currentBalance
+              );
+              currentBalance = Math.max(0, currentBalance - principalPayment);
+            }
+          }
+        }
+        
         await db.run(
           'INSERT INTO balances (account_id, amount, date, balance_type, notes) VALUES (?, ?, ?, ?, ?)',
           [
             accountId, 
-            amortizationData.originalBalance, 
-            startDate,
-            'manual',
-            'Initial balance automatically created for debt account with auto-updates enabled'
+            currentBalance, 
+            new Date().toISOString().split('T')[0], // Use current date for the calculated balance
+            'automatic',
+            `Balance calculated for ${monthsElapsed} months elapsed since loan start (${startDate})`
           ]
         );
       }
@@ -287,14 +318,45 @@ export class AccountService {
         
         if (!existingBalance) {
           const startDate = amortizationData.loanStartDate || new Date().toISOString().split('T')[0];
+          
+          // Calculate current balance based on months elapsed since loan start
+          let currentBalance = amortizationData.originalBalance;
+          const currentDate = new Date();
+          const loanStartDate = new Date(startDate);
+          const monthsElapsed = (currentDate.getFullYear() - loanStartDate.getFullYear()) * 12 + 
+                               (currentDate.getMonth() - loanStartDate.getMonth());
+          
+          if (monthsElapsed > 0 && amortizationData.aprRate && amortizationData.monthlyPayment) {
+            // Calculate balance after all elapsed payments
+            const monthlyRate = amortizationData.aprRate / 12;
+            
+            for (let month = 0; month < monthsElapsed; month++) {
+              if (currentBalance <= 0) break;
+              
+              const interestPayment = currentBalance * monthlyRate;
+              
+              if (amortizationData.paymentType === 'interest_only') {
+                // Interest-only: balance stays the same, just pay interest
+                // No principal payment, so balance doesn't change
+              } else {
+                // Fixed payment: principal + interest
+                const principalPayment = Math.min(
+                  amortizationData.monthlyPayment - interestPayment, 
+                  currentBalance
+                );
+                currentBalance = Math.max(0, currentBalance - principalPayment);
+              }
+            }
+          }
+          
           await db.run(
             'INSERT INTO balances (account_id, amount, date, balance_type, notes) VALUES (?, ?, ?, ?, ?)',
             [
               id, 
-              amortizationData.originalBalance, 
-              startDate,
-              'manual',
-              'Initial balance automatically created when enabling auto-updates for debt account'
+              currentBalance, 
+              new Date().toISOString().split('T')[0], // Use current date for the calculated balance
+              'automatic',
+              `Balance calculated for ${monthsElapsed} months elapsed since loan start (${startDate})`
             ]
           );
         }
