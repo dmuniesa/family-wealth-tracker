@@ -81,12 +81,12 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
       iban: initialData?.iban || "",
       notes: initialData?.notes || "",
       // Debt amortization defaults
-      aprRate: (initialData as any)?.apr_rate || undefined,
-      monthlyPayment: (initialData as any)?.monthly_payment || undefined,
-      loanTermMonths: (initialData as any)?.loan_term_months || undefined,
+      aprRate: (initialData as any)?.apr_rate || 0,
+      monthlyPayment: (initialData as any)?.monthly_payment || 0,
+      loanTermMonths: (initialData as any)?.loan_term_months || 0,
       paymentType: (initialData as any)?.payment_type || "fixed",
       autoUpdateEnabled: (initialData as any)?.auto_update_enabled || false,
-      originalBalance: (initialData as any)?.original_balance || undefined,
+      originalBalance: (initialData as any)?.original_balance || 0,
       loanStartDate: (initialData as any)?.loan_start_date || "",
     },
   })
@@ -108,12 +108,22 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
       const url = isEdit ? `/api/accounts/${initialData?.id}` : '/api/accounts'
       const method = isEdit ? 'PUT' : 'POST'
       
+      // Convert 0 values back to undefined for debt fields when sending to API
+      const submitValues = {
+        ...values,
+        aprRate: values.aprRate && values.aprRate > 0 ? values.aprRate : undefined,
+        monthlyPayment: values.monthlyPayment && values.monthlyPayment > 0 ? values.monthlyPayment : undefined,
+        loanTermMonths: values.loanTermMonths && values.loanTermMonths > 0 ? values.loanTermMonths : undefined,
+        originalBalance: values.originalBalance && values.originalBalance > 0 ? values.originalBalance : undefined,
+        loanStartDate: values.loanStartDate && values.loanStartDate.trim() !== '' ? values.loanStartDate : undefined,
+      }
+      
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(submitValues),
       })
 
       const data = await response.json()
@@ -290,8 +300,8 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
                             step="0.01"
                             min="0"
                             placeholder="10000.00" 
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                            value={field.value ? field.value.toString() : '0'}
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -310,8 +320,8 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
                             type="number" 
                             min="1"
                             placeholder="360" 
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                            value={field.value ? field.value.toString() : '0'}
+                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : 0)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -333,8 +343,8 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
                             step="0.01"
                             min="0"
                             placeholder="500.00" 
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                            value={field.value ? field.value.toString() : '0'}
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
                           />
                         </FormControl>
                         <FormDescription>{t('debt.monthlyPaymentDescription')}</FormDescription>
