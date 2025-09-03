@@ -151,11 +151,13 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
       const submitValues = {
         ...values,
         aprRate: values.aprRate && values.aprRate > 0 ? values.aprRate : undefined,
-        monthlyPayment: (values.monthlyPayment && values.monthlyPayment > 0) || isAutoCalculated ? values.monthlyPayment : undefined,
+        monthlyPayment: ((values.monthlyPayment && values.monthlyPayment > 0) || isAutoCalculated) ? values.monthlyPayment : undefined,
         loanTermMonths: values.loanTermMonths && values.loanTermMonths > 0 ? values.loanTermMonths : undefined,
         originalBalance: values.originalBalance && values.originalBalance > 0 ? values.originalBalance : undefined,
         loanStartDate: values.loanStartDate && values.loanStartDate.trim() !== '' ? values.loanStartDate : undefined,
       }
+      
+      console.log('Submitting values:', submitValues)
       
       const response = await fetch(url, {
         method,
@@ -168,6 +170,13 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
       const data = await response.json()
 
       if (!response.ok) {
+        if (data.details && Array.isArray(data.details)) {
+          // Handle Zod validation errors with specific details
+          const errorMessages = data.details.map((detail: any) => 
+            `${detail.path?.join('.')}: ${detail.message}`
+          ).join('\n')
+          throw new Error(`${data.error}\n\nDetails:\n${errorMessages}`)
+        }
         throw new Error(data.error || t('common.error'))
       }
 
@@ -469,7 +478,7 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
 
             {error && (
               <div className="text-sm text-destructive bg-destructive/10 p-3 rounded">
-                {error}
+                <pre className="whitespace-pre-wrap font-sans">{error}</pre>
               </div>
             )}
 
