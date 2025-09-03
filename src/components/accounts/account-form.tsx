@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -92,6 +92,39 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
   })
 
   const watchedCategory = form.watch('category')
+  const watchedAprRate = form.watch('aprRate')
+  const watchedOriginalBalance = form.watch('originalBalance')
+  const watchedLoanTermMonths = form.watch('loanTermMonths')
+  const watchedPaymentType = form.watch('paymentType')
+
+  // Calculate monthly payment automatically
+  useEffect(() => {
+    if (watchedCategory === 'Debt' && 
+        watchedAprRate && watchedAprRate > 0 && 
+        watchedOriginalBalance && watchedOriginalBalance > 0 && 
+        watchedLoanTermMonths && watchedLoanTermMonths > 0) {
+      
+      const principal = watchedOriginalBalance
+      const monthlyRate = watchedAprRate / 12
+      const numPayments = watchedLoanTermMonths
+      
+      let monthlyPayment: number
+      
+      if (watchedPaymentType === 'interest_only') {
+        // Interest-only payment
+        monthlyPayment = principal * monthlyRate
+      } else {
+        // Fixed payment (principal + interest)
+        monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
+                        (Math.pow(1 + monthlyRate, numPayments) - 1)
+      }
+      
+      // Round to 2 decimal places
+      monthlyPayment = Math.round(monthlyPayment * 100) / 100
+      
+      form.setValue('monthlyPayment', monthlyPayment)
+    }
+  }, [watchedCategory, watchedAprRate, watchedOriginalBalance, watchedLoanTermMonths, watchedPaymentType, form])
 
   async function onSubmit(values: AccountFormValues) {
     setIsLoading(true)
@@ -109,10 +142,16 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
       const method = isEdit ? 'PUT' : 'POST'
       
       // Convert 0 values back to undefined for debt fields when sending to API
+      // But keep monthlyPayment if it was calculated automatically
+      const isAutoCalculated = values.category === 'Debt' && 
+                               values.aprRate && values.aprRate > 0 && 
+                               values.originalBalance && values.originalBalance > 0 && 
+                               values.loanTermMonths && values.loanTermMonths > 0
+                               
       const submitValues = {
         ...values,
         aprRate: values.aprRate && values.aprRate > 0 ? values.aprRate : undefined,
-        monthlyPayment: values.monthlyPayment && values.monthlyPayment > 0 ? values.monthlyPayment : undefined,
+        monthlyPayment: (values.monthlyPayment && values.monthlyPayment > 0) || isAutoCalculated ? values.monthlyPayment : undefined,
         loanTermMonths: values.loanTermMonths && values.loanTermMonths > 0 ? values.loanTermMonths : undefined,
         originalBalance: values.originalBalance && values.originalBalance > 0 ? values.originalBalance : undefined,
         loanStartDate: values.loanStartDate && values.loanStartDate.trim() !== '' ? values.loanStartDate : undefined,
@@ -345,9 +384,25 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
                             placeholder="500.00" 
                             value={field.value ? field.value.toString() : '0'}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
+                            readOnly={watchedCategory === 'Debt' && 
+                                     watchedAprRate && watchedAprRate > 0 && 
+                                     watchedOriginalBalance && watchedOriginalBalance > 0 && 
+                                     watchedLoanTermMonths && watchedLoanTermMonths > 0}
+                            className={watchedCategory === 'Debt' && 
+                                      watchedAprRate && watchedAprRate > 0 && 
+                                      watchedOriginalBalance && watchedOriginalBalance > 0 && 
+                                      watchedLoanTermMonths && watchedLoanTermMonths > 0 ? 
+                                      'bg-muted' : ''}
                           />
                         </FormControl>
-                        <FormDescription>{t('debt.monthlyPaymentDescription')}</FormDescription>
+                        <FormDescription>
+                          {watchedCategory === 'Debt' && 
+                           watchedAprRate && watchedAprRate > 0 && 
+                           watchedOriginalBalance && watchedOriginalBalance > 0 && 
+                           watchedLoanTermMonths && watchedLoanTermMonths > 0 ? 
+                           'Calculated automatically based on loan details' : 
+                           t('debt.monthlyPaymentDescription')}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
