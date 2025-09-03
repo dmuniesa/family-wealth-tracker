@@ -6,7 +6,7 @@ import { AuthGuard } from "@/components/auth/auth-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus, Edit, Trash, Wallet, TrendingUp } from "lucide-react"
+import { Plus, Edit, Trash, Wallet, TrendingUp, RefreshCw } from "lucide-react"
 import { AccountForm } from "@/components/accounts/account-form"
 import { useTranslations } from 'next-intl'
 import type { AccountWithBalance } from "@/types"
@@ -55,6 +55,28 @@ export default function AccountsPage() {
         }
       } catch (error) {
         console.error('Failed to delete account:', error)
+      }
+    }
+  }
+
+  const handleAutoUpdate = async (accountId: number) => {
+    if (confirm('Apply automatic monthly update for this debt account?')) {
+      try {
+        const response = await fetch(`/api/accounts/${accountId}/auto-update`, {
+          method: 'POST'
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok) {
+          alert(`Update applied successfully! New balance: €${data.newBalance.toFixed(2)}, Interest added: €${data.interestAdded.toFixed(2)}`)
+          fetchAccounts()
+        } else {
+          alert(`Error: ${data.error}`)
+        }
+      } catch (error) {
+        console.error('Failed to apply auto update:', error)
+        alert('Failed to apply auto update')
       }
     }
   }
@@ -156,6 +178,17 @@ export default function AccountsPage() {
                       </span>
                     </div>
                     <div className="flex space-x-1 flex-shrink-0">
+                      {account.category === 'Debt' && (account as any).auto_update_enabled && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleAutoUpdate(account.id)}
+                          className="h-8 w-8 p-0"
+                          title="Apply monthly update"
+                        >
+                          <RefreshCw className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      )}
                       <Button 
                         variant="ghost" 
                         size="sm"

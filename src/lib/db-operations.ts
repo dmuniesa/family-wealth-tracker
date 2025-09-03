@@ -169,7 +169,25 @@ export class AccountService {
           amortizationData.loanStartDate || null
         ]
       );
-      return result.lastID;
+      
+      const accountId = result.lastID;
+      
+      // Create initial balance if auto update is enabled and original balance is provided
+      if (amortizationData.autoUpdateEnabled && amortizationData.originalBalance && amortizationData.originalBalance > 0) {
+        const startDate = amortizationData.loanStartDate || new Date().toISOString().split('T')[0];
+        await db.run(
+          'INSERT INTO balances (account_id, amount, date, balance_type, notes) VALUES (?, ?, ?, ?, ?)',
+          [
+            accountId, 
+            amortizationData.originalBalance, 
+            startDate,
+            'manual',
+            'Initial balance automatically created for debt account with auto-updates enabled'
+          ]
+        );
+      }
+      
+      return accountId;
     } else {
       const result = await db.run(
         'INSERT INTO accounts (family_id, name, category, currency, iban_encrypted, notes) VALUES (?, ?, ?, ?, ?, ?)',
@@ -236,6 +254,11 @@ export class AccountService {
         remainingMonths = Math.max(0, amortizationData.loanTermMonths - monthsElapsed);
       }
       
+      // Check if auto updates are being enabled and account doesn't have balance yet
+      const currentAccount = await db.get('SELECT auto_update_enabled FROM accounts WHERE id = ?', [id]) as { auto_update_enabled: boolean } | null;
+      const wasAutoUpdateEnabled = currentAccount?.auto_update_enabled || false;
+      const isEnablingAutoUpdate = !wasAutoUpdateEnabled && amortizationData.autoUpdateEnabled;
+      
       await db.run(
         `UPDATE accounts SET 
           name = ?, category = ?, currency = ?, iban_encrypted = ?, notes = ?,
@@ -256,6 +279,26 @@ export class AccountService {
           id
         ]
       );
+      
+      // Create initial balance if auto update is being enabled for the first time
+      if (isEnablingAutoUpdate && amortizationData.originalBalance && amortizationData.originalBalance > 0) {
+        // Check if account already has any balances
+        const existingBalance = await db.get('SELECT id FROM balances WHERE account_id = ? LIMIT 1', [id]);
+        
+        if (!existingBalance) {
+          const startDate = amortizationData.loanStartDate || new Date().toISOString().split('T')[0];
+          await db.run(
+            'INSERT INTO balances (account_id, amount, date, balance_type, notes) VALUES (?, ?, ?, ?, ?)',
+            [
+              id, 
+              amortizationData.originalBalance, 
+              startDate,
+              'manual',
+              'Initial balance automatically created when enabling auto-updates for debt account'
+            ]
+          );
+        }
+      }
     } else {
       // For non-Debt accounts, clear amortization fields
       await db.run(
