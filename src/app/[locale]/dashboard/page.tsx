@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const t = useTranslations()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([])
-  const [historicalData, setHistoricalData] = useState<Array<{ date: string; net_worth: number }>>([])
+  const [historicalData, setHistoricalData] = useState<Array<{ date: string; net_worth: number; total_active: number }>>([])
   const [loading, setLoading] = useState(true)
   const [showAccountForm, setShowAccountForm] = useState(false)
   const [showBalanceForm, setShowBalanceForm] = useState(false)
@@ -31,8 +31,9 @@ export default function DashboardPage() {
     }))
 
   const timeSeriesData = historicalData.map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-    netWorth: item.net_worth
+    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    netWorth: item.net_worth,
+    totalActive: item.total_active
   }))
 
   useEffect(() => {
@@ -263,7 +264,7 @@ export default function DashboardPage() {
               <CardDescription>{t('dashboard.trackWealth')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={timeSeriesData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
@@ -271,21 +272,62 @@ export default function DashboardPage() {
                     fontSize={12}
                     tickMargin={8}
                   />
+                  {/* Left Y-axis for Total Active */}
                   <YAxis 
+                    yAxisId="left"
                     fontSize={12}
                     tickMargin={8}
+                    stroke="#10B981"
+                  />
+                  {/* Right Y-axis for Net Worth */}
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    fontSize={12}
+                    tickMargin={8}
+                    stroke="#3B82F6"
                   />
                   <Tooltip 
-                    formatter={(value: number) => [formatCurrency(value), t('dashboard.netWorth')]}
+                    formatter={(value: number, name: string) => {
+                      const label = name === 'totalActive' ? t('dashboard.totalActive') : t('dashboard.netWorth');
+                      return [formatCurrency(value), label];
+                    }}
+                    labelStyle={{ color: '#374151' }}
+                    contentStyle={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}
                   />
+                  {/* Total Active line (left axis) */}
                   <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="totalActive" 
+                    stroke="#10B981" 
+                    strokeWidth={2}
+                    name="totalActive"
+                    dot={{ fill: '#10B981', strokeWidth: 2, r: 3 }}
+                  />
+                  {/* Net Worth line (right axis) */}
+                  <Line 
+                    yAxisId="right"
                     type="monotone" 
                     dataKey="netWorth" 
                     stroke="#3B82F6" 
                     strokeWidth={2}
+                    name="netWorth"
+                    dot={{ fill: '#3B82F6', strokeWidth: 2, r: 3 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
+              {/* Legend */}
+              <div className="flex justify-center gap-6 mt-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">{t('dashboard.totalActive')} (Left)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">{t('dashboard.netWorth')} (Right)</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
