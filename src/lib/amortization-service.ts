@@ -58,6 +58,45 @@ export class AmortizationService {
   }
 
   /**
+   * Calculate the next payment date based on loan start date and last update
+   * Handles months with different number of days (28, 29, 30, 31)
+   */
+  private getNextPaymentDate(loanStartDate: Date, lastAutoUpdate?: string): Date {
+    const today = new Date();
+    const paymentDayOfMonth = loanStartDate.getDate();
+    
+    let nextPaymentDate: Date;
+    
+    if (lastAutoUpdate) {
+      // Calculate next payment from last update
+      const lastUpdate = new Date(lastAutoUpdate);
+      nextPaymentDate = new Date(lastUpdate);
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+    } else {
+      // First payment: calculate from loan start date
+      nextPaymentDate = new Date(loanStartDate);
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+    }
+    
+    // Handle month-end dates (28, 29, 30, 31)
+    // Set to day 1 first to avoid date overflow issues
+    nextPaymentDate.setDate(1);
+    
+    const targetMonth = nextPaymentDate.getMonth();
+    const targetYear = nextPaymentDate.getFullYear();
+    
+    // Get the last day of the target month
+    const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+    
+    // Use the original payment day or the last day of month, whichever is smaller
+    const actualPaymentDay = Math.min(paymentDayOfMonth, lastDayOfMonth);
+    
+    nextPaymentDate.setDate(actualPaymentDay);
+    
+    return nextPaymentDate;
+  }
+
+  /**
    * Calculate fixed monthly payment using French amortization method
    */
   calculateFixedMonthlyPayment(
@@ -228,15 +267,24 @@ export class AmortizationService {
         return { success: false, newBalance: account.current_balance, interestAdded: 0, error: 'Auto-update not enabled or APR not set' };
       }
 
-      // Check if already updated this month
+      // Calculate the next payment date based on loan start date
       const today = new Date();
-      const currentMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+      const loanStartDate = account.loan_start_date ? new Date(account.loan_start_date) : null;
       
-      if (account.last_auto_update) {
-        const lastUpdateMonth = account.last_auto_update.substring(0, 7); // YYYY-MM
-        if (lastUpdateMonth === currentMonth) {
-          return { success: false, newBalance: account.current_balance, interestAdded: 0, error: 'Already updated this month' };
-        }
+      if (!loanStartDate) {
+        return { success: false, newBalance: account.current_balance, interestAdded: 0, error: 'Loan start date not set' };
+      }
+      
+      // Get the day of month from loan start date
+      const paymentDayOfMonth = loanStartDate.getDate();
+      
+      // Calculate the next payment date
+      const nextPaymentDate = this.getNextPaymentDate(loanStartDate, account.last_auto_update);
+      
+      // Check if it's time for the next payment
+      if (today < nextPaymentDate) {
+        const daysUntilNext = Math.ceil((nextPaymentDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        return { success: false, newBalance: account.current_balance, interestAdded: 0, error: `Next payment due in ${daysUntilNext} days (${nextPaymentDate.toLocaleDateString()})` };
       }
 
       // Calculate interest for this month
@@ -254,9 +302,9 @@ export class AmortizationService {
       `, [
         accountId, 
         newBalance, 
-        today.toISOString().split('T')[0],
+        nextPaymentDate.toISOString().split('T')[0], // Use the actual payment date
         interestAdded,
-        `Automatic monthly interest application: ${(account.apr_rate * 100).toFixed(2)}% APR`
+        `Automatic monthly payment applied on ${nextPaymentDate.toLocaleDateString()}: ${(account.apr_rate * 100).toFixed(2)}% APR`
       ]);
 
       // Update last auto-update date and remaining months
@@ -265,7 +313,7 @@ export class AmortizationService {
         UPDATE accounts 
         SET last_auto_update = ?, remaining_months = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `, [today.toISOString().split('T')[0], newRemainingMonths, accountId]);
+      `, [nextPaymentDate.toISOString().split('T')[0], newRemainingMonths, accountId]);
 
       return { success: true, newBalance, interestAdded };
     } catch (error) {
