@@ -263,7 +263,17 @@
     "disconnected": "Desconectado",
     "lastBackup": "Último Respaldo",
     "nextScheduled": "Próximo Programado",
-    "loading": "Cargando respaldos..."
+    "loading": "Cargando respaldos...",
+    "uploadBackup": "Subir Respaldo",
+    "uploadBackupDescription": "Sube un archivo de respaldo previamente descargado para restaurar más tarde",
+    "selectFile": "Seleccionar archivo de respaldo",
+    "uploadInProgress": "Subiendo respaldo...",
+    "uploadSuccess": "¡Respaldo subido correctamente!",
+    "uploadError": "Error al subir el respaldo",
+    "invalidFileType": "Tipo de archivo inválido. Solo se permiten archivos .db.",
+    "fileTooLarge": "Archivo demasiado grande. El tamaño máximo es 100MB.",
+    "dragDropText": "Arrastra y suelta un archivo de respaldo aquí, o haz clic para seleccionar",
+    "supportedFormats": "Formatos soportados: solo archivos .db"
   },
   "members": {
     "title": "Miembros Familiares",

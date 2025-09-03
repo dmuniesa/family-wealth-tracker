@@ -263,7 +263,17 @@
     "disconnected": "Disconnected",
     "lastBackup": "Last Backup",
     "nextScheduled": "Next Scheduled",
-    "loading": "Loading backups..."
+    "loading": "Loading backups...",
+    "uploadBackup": "Upload Backup",
+    "uploadBackupDescription": "Upload a previously downloaded backup file to restore later",
+    "selectFile": "Select backup file",
+    "uploadInProgress": "Uploading backup...",
+    "uploadSuccess": "Backup uploaded successfully!",
+    "uploadError": "Failed to upload backup",
+    "invalidFileType": "Invalid file type. Only .db files are allowed.",
+    "fileTooLarge": "File too large. Maximum size is 100MB.",
+    "dragDropText": "Drag and drop a backup file here, or click to select",
+    "supportedFormats": "Supported formats: .db files only"
   },
   "members": {
     "title": "Family Members",

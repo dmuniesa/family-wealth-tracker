@@ -53,6 +53,45 @@ export class BackupService {
     }
   }
 
+  static async saveUploadedBackup(buffer: Buffer, backupId: string, fileName: string): Promise<BackupInfo> {
+    await this.initializeBackupDirectory()
+    
+    const backupPath = path.join(this.backupDir, fileName)
+    
+    try {
+      // Save the uploaded file
+      await fs.writeFile(backupPath, buffer)
+      
+      // Validate the uploaded backup
+      const isValid = await this.validateBackup(backupPath)
+      if (!isValid) {
+        await fs.unlink(backupPath) // Clean up invalid file
+        throw new Error('Invalid backup file. The uploaded file does not appear to be a valid database.')
+      }
+      
+      const stats = await fs.stat(backupPath)
+      
+      const backupInfo: BackupInfo = {
+        id: backupId,
+        name: fileName,
+        size: stats.size,
+        created_at: new Date().toISOString(),
+        location: 'local',
+        filePath: backupPath
+      }
+
+      await this.saveBackupMetadata(backupInfo)
+      return backupInfo
+    } catch (error) {
+      // Clean up file if something went wrong
+      try {
+        await fs.unlink(backupPath)
+      } catch {}
+      
+      throw new Error(`Failed to save uploaded backup: ${error}`)
+    }
+  }
+
   static async listBackups(): Promise<BackupInfo[]> {
     await this.initializeBackupDirectory()
     

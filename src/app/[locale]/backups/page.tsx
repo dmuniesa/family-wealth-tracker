@@ -15,7 +15,9 @@ import {
   RotateCcw,
   Trash2,
   HardDrive,
-  Clock
+  Clock,
+  Upload,
+  FileText
 } from "lucide-react"
 import { useTranslations } from 'next-intl'
 import {
@@ -51,6 +53,8 @@ export default function BackupsPage() {
   const [nextScheduled, setNextScheduled] = useState<string | null>(null)
   const [cloudConfigs, setCloudConfigs] = useState<CloudStorageConfig[]>([])
   const [isConnecting, setIsConnecting] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchBackups()
@@ -223,6 +227,70 @@ export default function BackupsPage() {
     }
   }
 
+  const uploadBackup = async (file: File) => {
+    if (!file) return
+    
+    // Validate file type
+    if (!file.name.endsWith('.db')) {
+      setUploadError(t('backups.invalidFileType'))
+      return
+    }
+    
+    // Validate file size (100MB max)
+    const maxSize = 100 * 1024 * 1024
+    if (file.size > maxSize) {
+      setUploadError(t('backups.fileTooLarge'))
+      return
+    }
+    
+    setIsUploading(true)
+    setUploadError(null)
+    
+    try {
+      const formData = new FormData()
+      formData.append('backup', file)
+      
+      const response = await fetch('/api/backups/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      
+      if (response.ok) {
+        await fetchBackups()
+        // Show success message could be added here
+      } else {
+        const errorData = await response.json()
+        setUploadError(errorData.error || t('backups.uploadError'))
+      }
+    } catch (error) {
+      console.error('Failed to upload backup:', error)
+      setUploadError(t('backups.uploadError'))
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      uploadBackup(file)
+    }
+    // Reset input value to allow selecting the same file again
+    event.target.value = ''
+  }
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const file = event.dataTransfer.files?.[0]
+    if (file) {
+      uploadBackup(file)
+    }
+  }
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
@@ -267,10 +335,26 @@ export default function BackupsPage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('backups.title')}</h1>
               <p className="text-gray-600">{t('backups.subtitle')}</p>
             </div>
-            <Button onClick={createBackup} disabled={isCreatingBackup} className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              {isCreatingBackup ? t('backups.backupInProgress') : t('backups.createBackup')}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={createBackup} disabled={isCreatingBackup} className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                {isCreatingBackup ? t('backups.backupInProgress') : t('backups.createBackup')}
+              </Button>
+              
+              <div className="relative w-full sm:w-auto">
+                <input
+                  type="file"
+                  accept=".db"
+                  onChange={handleFileSelect}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  disabled={isUploading}
+                />
+                <Button variant="outline" disabled={isUploading} className="w-full sm:w-auto">
+                  <Upload className="mr-2 h-4 w-4" />
+                  {isUploading ? t('backups.uploadInProgress') : t('backups.uploadBackup')}
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -311,6 +395,60 @@ export default function BackupsPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Upload Backup Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl">{t('backups.uploadBackup')}</CardTitle>
+              <CardDescription>{t('backups.uploadBackupDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                <div className="space-y-4">
+                  <div className="flex justify-center">
+                    <FileText className="h-12 w-12 text-gray-400" />
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {t('backups.dragDropText')}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {t('backups.supportedFormats')}
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".db"
+                      onChange={handleFileSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={isUploading}
+                    />
+                    <Button 
+                      variant="outline" 
+                      disabled={isUploading}
+                      className="relative"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {isUploading ? t('backups.uploadInProgress') : t('backups.selectFile')}
+                    </Button>
+                  </div>
+                  
+                  {uploadError && (
+                    <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                      {uploadError}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>

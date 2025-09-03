@@ -251,12 +251,24 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
                       <FormControl>
                         <Input 
                           type="number" 
-                          step="0.001"
+                          step="0.0001"
                           min="0"
                           max="1"
                           placeholder="0.05" 
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          name={field.name}
+                          value={field.value ?? ''}
+                          onBlur={field.onBlur}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '' || value === null) {
+                              field.onChange(undefined)
+                            } else {
+                              const numValue = parseFloat(value)
+                              if (!isNaN(numValue)) {
+                                field.onChange(numValue)
+                              }
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormDescription>{t('debt.aprRateDescription')}</FormDescription>

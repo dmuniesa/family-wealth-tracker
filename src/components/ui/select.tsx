@@ -338,7 +338,20 @@ const SelectItem = React.forwardRef<
 >(({ className, children, value, disabled, onClick, ...props }, ref) => {
   const { value: selectedValue, onValueChange, setSelectedLabel, registerOption } = useSelect()
   const isSelected = selectedValue === value
-  const label = typeof children === 'string' ? children : value
+  
+  // Extract text content from children
+  const label = React.useMemo(() => {
+    if (typeof children === 'string') return children
+    if (typeof children === 'number') return children.toString()
+    
+    // For JSX expressions like {account.name} ({account.currency}), convert to string
+    try {
+      const textContent = React.Children.toArray(children).join('')
+      return textContent || value
+    } catch {
+      return value
+    }
+  }, [children, value])
 
   // Register this option on mount and update selected label if this is the selected value
   React.useEffect(() => {
