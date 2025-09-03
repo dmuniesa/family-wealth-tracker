@@ -211,15 +211,63 @@ export class AccountService {
     category: 'Banking' | 'Investment' | 'Debt',
     currency: string,
     iban?: string,
-    notes?: string
+    notes?: string,
+    amortizationData?: {
+      aprRate?: number;
+      monthlyPayment?: number;
+      loanTermMonths?: number;
+      paymentType?: 'fixed' | 'interest_only';
+      autoUpdateEnabled?: boolean;
+      originalBalance?: number;
+      loanStartDate?: string;
+    }
   ): Promise<void> {
     const db = await getDatabase();
     const encryptedIban = iban ? encryptIBAN(iban) : '';
     
-    await db.run(
-      'UPDATE accounts SET name = ?, category = ?, currency = ?, iban_encrypted = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [name, category, currency, encryptedIban, notes, id]
-    );
+    if (category === 'Debt' && amortizationData) {
+      // Calculate remaining months if loan start date is provided
+      let remainingMonths = amortizationData.loanTermMonths;
+      if (amortizationData.loanStartDate && amortizationData.loanTermMonths) {
+        const startDate = new Date(amortizationData.loanStartDate);
+        const currentDate = new Date();
+        const monthsElapsed = (currentDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                            (currentDate.getMonth() - startDate.getMonth());
+        remainingMonths = Math.max(0, amortizationData.loanTermMonths - monthsElapsed);
+      }
+      
+      await db.run(
+        `UPDATE accounts SET 
+          name = ?, category = ?, currency = ?, iban_encrypted = ?, notes = ?,
+          apr_rate = ?, monthly_payment = ?, loan_term_months = ?, remaining_months = ?,
+          payment_type = ?, auto_update_enabled = ?, original_balance = ?, loan_start_date = ?,
+          updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?`,
+        [
+          name, category, currency, encryptedIban, notes,
+          amortizationData.aprRate || null,
+          amortizationData.monthlyPayment || null,
+          amortizationData.loanTermMonths || null,
+          remainingMonths || null,
+          amortizationData.paymentType || 'fixed',
+          amortizationData.autoUpdateEnabled || false,
+          amortizationData.originalBalance || null,
+          amortizationData.loanStartDate || null,
+          id
+        ]
+      );
+    } else {
+      // For non-Debt accounts, clear amortization fields
+      await db.run(
+        `UPDATE accounts SET 
+          name = ?, category = ?, currency = ?, iban_encrypted = ?, notes = ?,
+          apr_rate = NULL, monthly_payment = NULL, loan_term_months = NULL, remaining_months = NULL,
+          payment_type = NULL, auto_update_enabled = FALSE, original_balance = NULL, loan_start_date = NULL,
+          updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?`,
+        [name, category, currency, encryptedIban, notes, id]
+      );
+    }
   }
 
   static async deleteAccount(id: number): Promise<void> {
