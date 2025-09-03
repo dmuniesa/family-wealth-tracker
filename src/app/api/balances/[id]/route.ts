@@ -12,7 +12,7 @@ const updateBalanceSchema = z.object({
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession(request);
-    if (\!session.user) {
+    if (!session.user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { account_id, amount, date } = updateBalanceSchema.parse(body);
 
     const account = await AccountService.getAccountById(account_id);
-    if (\!account || account.family_id \!== session.user.family_id) {
+    if (!account || account.family_id !== session.user.family_id) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
 
@@ -45,7 +45,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession(request);
-    if (\!session.user) {
+    if (!session.user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
