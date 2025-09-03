@@ -157,7 +157,7 @@ export function AccountForm({ onSuccess, onCancel, initialData, isEdit = false }
         loanStartDate: values.loanStartDate && values.loanStartDate.trim() !== '' ? values.loanStartDate : undefined,
       }
       
-      console.log('Submitting values:', submitValues)
+      // console.log('Submitting values:', submitValues)
       
       const response = await fetch(url, {
         method,

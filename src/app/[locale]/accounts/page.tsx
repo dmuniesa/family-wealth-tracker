@@ -6,7 +6,8 @@ import { AuthGuard } from "@/components/auth/auth-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus, Edit, Trash, Wallet, TrendingUp, RefreshCw } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Plus, Edit, Trash, Wallet, TrendingUp, RefreshCw, Calculator } from "lucide-react"
 import { AccountForm } from "@/components/accounts/account-form"
 import { useTranslations } from 'next-intl'
 import type { AccountWithBalance } from "@/types"
@@ -17,6 +18,9 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true)
   const [showAccountForm, setShowAccountForm] = useState(false)
   const [editingAccount, setEditingAccount] = useState<AccountWithBalance | null>(null)
+  const [viewingAmortization, setViewingAmortization] = useState<AccountWithBalance | null>(null)
+  const [amortizationData, setAmortizationData] = useState<any>(null)
+  const [loadingAmortization, setLoadingAmortization] = useState(false)
 
   useEffect(() => {
     fetchAccounts()
@@ -78,6 +82,29 @@ export default function AccountsPage() {
         console.error('Failed to apply auto update:', error)
         alert('Failed to apply auto update')
       }
+    }
+  }
+
+  const handleViewAmortization = async (account: AccountWithBalance) => {
+    setViewingAmortization(account)
+    setLoadingAmortization(true)
+    
+    try {
+      const response = await fetch(`/api/accounts/${account.id}/amortization`)
+      const data = await response.json()
+      
+      if (response.ok) {
+        setAmortizationData(data)
+      } else {
+        alert(`Error loading amortization: ${data.error}`)
+        setViewingAmortization(null)
+      }
+    } catch (error) {
+      console.error('Failed to load amortization:', error)
+      alert('Failed to load amortization schedule')
+      setViewingAmortization(null)
+    } finally {
+      setLoadingAmortization(false)
     }
   }
 
@@ -178,6 +205,17 @@ export default function AccountsPage() {
                       </span>
                     </div>
                     <div className="flex space-x-1 flex-shrink-0">
+                      {account.category === 'Debt' && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewAmortization(account)}
+                          className="h-8 w-8 p-0"
+                          title="View amortization schedule"
+                        >
+                          <Calculator className="h-4 w-4 text-green-600" />
+                        </Button>
+                      )}
                       {account.category === 'Debt' && (account as any).auto_update_enabled && (
                         <Button 
                           variant="ghost" 
@@ -236,6 +274,14 @@ export default function AccountsPage() {
                         <div>
                           <p className="text-sm text-gray-600">Loan Term</p>
                           <p className="text-sm">{(account as any).loan_term_months} months</p>
+                        </div>
+                      )}
+                      {(account as any).remaining_months && (
+                        <div>
+                          <p className="text-sm text-gray-600">Remaining Payments</p>
+                          <p className="text-sm font-medium text-orange-600">
+                            {(account as any).remaining_months} payments left
+                          </p>
                         </div>
                       )}
                       {(account as any).original_balance && (
@@ -307,6 +353,84 @@ export default function AccountsPage() {
                 }}
                 onCancel={() => setEditingAccount(null)}
               />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Amortization Schedule Modal */}
+        <Dialog open={!!viewingAmortization} onOpenChange={() => {
+          setViewingAmortization(null)
+          setAmortizationData(null)
+        }}>
+          <DialogContent className="w-[95vw] max-w-4xl max-h-[80vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Amortization Schedule - {viewingAmortization?.name}
+              </DialogTitle>
+            </DialogHeader>
+            {loadingAmortization ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              </div>
+            ) : amortizationData?.schedule ? (
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded">
+                  <div>
+                    <p className="text-sm text-gray-600">Current Balance</p>
+                    <p className="font-semibold">{formatCurrency(amortizationData.schedule.currentBalance)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Monthly Payment</p>
+                    <p className="font-semibold">{formatCurrency(amortizationData.schedule.monthlyPayment)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Remaining Months</p>
+                    <p className="font-semibold">{amortizationData.schedule.remainingMonths}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Interest</p>
+                    <p className="font-semibold">{formatCurrency(amortizationData.schedule.totalInterest)}</p>
+                  </div>
+                </div>
+
+                {/* Payment Schedule Table */}
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Payment #</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Interest</TableHead>
+                        <TableHead>Principal</TableHead>
+                        <TableHead>Total Payment</TableHead>
+                        <TableHead>Balance</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {amortizationData.schedule.payments.slice(0, 24).map((payment: any, index: number) => (
+                        <TableRow key={payment.month}>
+                          <TableCell>{payment.month}</TableCell>
+                          <TableCell>{payment.date}</TableCell>
+                          <TableCell>{formatCurrency(payment.interestPayment)}</TableCell>
+                          <TableCell>{formatCurrency(payment.principalPayment)}</TableCell>
+                          <TableCell className="font-medium">{formatCurrency(payment.totalPayment)}</TableCell>
+                          <TableCell>{formatCurrency(payment.remainingBalance)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {amortizationData.schedule.payments.length > 24 && (
+                    <div className="p-4 text-center text-sm text-gray-500 border-t">
+                      Showing first 24 payments of {amortizationData.schedule.payments.length} total
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-gray-500">
+                No amortization data available
+              </div>
             )}
           </DialogContent>
         </Dialog>
