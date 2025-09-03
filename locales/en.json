@@ -60,6 +60,7 @@
     "startTracking": "Start tracking your wealth by recording account balances",
     "allRecords": "All Balance Records",
     "date": "Date",
+    "dateTime": "Date & Time",
     "account": "Account",
     "category": "Category",
     "amount": "Amount",

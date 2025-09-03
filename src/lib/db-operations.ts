@@ -241,7 +241,7 @@ export class AccountService {
           account_id,
           amount,
           date,
-          ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY date DESC) as rn
+          ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY created_at DESC, id DESC) as rn
         FROM balances
       ) b ON a.id = b.account_id AND b.rn = 1
       WHERE a.family_id = ?
@@ -396,7 +396,7 @@ export class BalanceService {
   static async createBalance(accountId: number, amount: number, date: string): Promise<number> {
     const db = await getDatabase();
     const result = await db.run(
-      'INSERT INTO balances (account_id, amount, date) VALUES (?, ?, ?)',
+      'INSERT INTO balances (account_id, amount, date, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
       [accountId, amount, date]
     );
     return result.lastID;

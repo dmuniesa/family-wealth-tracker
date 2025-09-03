@@ -60,6 +60,7 @@
     "startTracking": "Comienza a rastrear tu patrimonio registrando saldos de cuentas",
     "allRecords": "Todos los Registros de Saldos",
     "date": "Fecha",
+    "dateTime": "Fecha y Hora",
     "account": "Cuenta",
     "category": "Categoría",
     "amount": "Cantidad",

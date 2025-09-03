@@ -22,6 +22,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true)
   const [showBalanceForm, setShowBalanceForm] = useState(false)
   const [editingBalance, setEditingBalance] = useState<BalanceWithAccount | null>(null)
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,7 +41,14 @@ export default function HistoryPage() {
             account: accountsData.find((acc: Account) => acc.id === balance.account_id)
           }))
 
-          setBalances(balancesWithAccounts)
+          // Sort balances by created_at timestamp (newest first by default)
+          const sortedBalances = balancesWithAccounts.sort((a, b) => {
+            const dateA = new Date(a.created_at || a.date).getTime()
+            const dateB = new Date(b.created_at || b.date).getTime()
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
+          })
+
+          setBalances(sortedBalances)
           setAccounts(accountsData)
         }
       } catch (error) {
@@ -69,7 +77,14 @@ export default function HistoryPage() {
           account: accountsData.find((acc: Account) => acc.id === balance.account_id)
         }))
 
-        setBalances(balancesWithAccounts)
+        // Sort balances by created_at timestamp (newest first by default)
+        const sortedBalances = balancesWithAccounts.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.date).getTime()
+          const dateB = new Date(b.created_at || b.date).getTime()
+          return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
+        })
+
+        setBalances(sortedBalances)
         setAccounts(accountsData)
       }
     } catch (error) {
@@ -82,6 +97,28 @@ export default function HistoryPage() {
       style: 'currency',
       currency,
     }).format(amount)
+  }
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      full: date.toLocaleString()
+    }
+  }
+
+  const toggleSortOrder = () => {
+    const newOrder = sortOrder === 'desc' ? 'asc' : 'desc'
+    setSortOrder(newOrder)
+    
+    const sortedBalances = [...balances].sort((a, b) => {
+      const dateA = new Date(a.created_at || a.date).getTime()
+      const dateB = new Date(b.created_at || b.date).getTime()
+      return newOrder === 'desc' ? dateB - dateA : dateA - dateB
+    })
+    
+    setBalances(sortedBalances)
   }
 
   const handleDeleteBalance = async (balanceId: number) => {
@@ -186,7 +223,17 @@ export default function HistoryPage() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b bg-gray-50">
-                          <th className="text-left py-3 px-4">{t('history.date')}</th>
+                          <th className="text-left py-3 px-4">
+                            <button 
+                              onClick={toggleSortOrder}
+                              className="flex items-center hover:text-blue-600 font-medium"
+                            >
+                              {t('history.dateTime')}
+                              <span className="ml-1 text-xs">
+                                {sortOrder === 'desc' ? '↓' : '↑'}
+                              </span>
+                            </button>
+                          </th>
                           <th className="text-left py-3 px-4">{t('history.account')}</th>
                           <th className="text-left py-3 px-4">{t('history.category')}</th>
                           <th className="text-right py-3 px-4">{t('history.amount')}</th>
@@ -197,7 +244,10 @@ export default function HistoryPage() {
                         {balances.map((balance) => (
                           <tr key={balance.id} className="border-b hover:bg-gray-50">
                             <td className="py-3 px-4">
-                              {new Date(balance.date).toLocaleDateString()}
+                              <div className="text-sm">
+                                <div className="font-medium">{formatDateTime(balance.created_at || balance.date).date}</div>
+                                <div className="text-gray-500 text-xs">{formatDateTime(balance.created_at || balance.date).time}</div>
+                              </div>
                             </td>
                             <td className="py-3 px-4">
                               <div>
@@ -266,7 +316,7 @@ export default function HistoryPage() {
                             {t(`categories.${balance.account?.category?.toLowerCase()}`)}
                           </span>
                           <span className="text-sm text-gray-500">
-                            {new Date(balance.date).toLocaleDateString()}
+                            {formatDateTime(balance.created_at || balance.date).full}
                           </span>
                         </div>
                         <p className="font-medium text-gray-900 truncate">{balance.account?.name}</p>

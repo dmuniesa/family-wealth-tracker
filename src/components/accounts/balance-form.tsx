@@ -59,7 +59,7 @@ export function BalanceForm({ accounts, onSuccess, onCancel, initialData, isEdit
   const form = useForm<BalanceFormValues>({
     resolver: zodResolver(balanceSchema),
     defaultValues: {
-      account_id: initialData?.account_id || undefined,
+      account_id: initialData?.account_id || (accounts.length === 1 ? accounts[0].id : undefined),
       amount: initialData?.amount || 0,
       date: initialData?.date || format(new Date(), 'yyyy-MM-dd'),
     },

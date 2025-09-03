@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Edit, Trash, Wallet, TrendingUp, RefreshCw, Calculator } from "lucide-react"
+import { Plus, Edit, Trash, Wallet, TrendingUp, RefreshCw, Calculator, BarChart3 } from "lucide-react"
 import { AccountForm } from "@/components/accounts/account-form"
+import { BalanceForm } from "@/components/accounts/balance-form"
 import { useTranslations } from 'next-intl'
 import type { AccountWithBalance } from "@/types"
 
@@ -21,6 +22,8 @@ export default function AccountsPage() {
   const [viewingAmortization, setViewingAmortization] = useState<AccountWithBalance | null>(null)
   const [amortizationData, setAmortizationData] = useState<any>(null)
   const [loadingAmortization, setLoadingAmortization] = useState(false)
+  const [showRecordBalance, setShowRecordBalance] = useState(false)
+  const [recordBalanceAccount, setRecordBalanceAccount] = useState<AccountWithBalance | null>(null)
 
   useEffect(() => {
     fetchAccounts()
@@ -106,6 +109,11 @@ export default function AccountsPage() {
     } finally {
       setLoadingAmortization(false)
     }
+  }
+
+  const handleRecordBalance = (account: AccountWithBalance) => {
+    setRecordBalanceAccount(account)
+    setShowRecordBalance(true)
   }
 
   if (loading) {
@@ -205,6 +213,15 @@ export default function AccountsPage() {
                       </span>
                     </div>
                     <div className="flex space-x-1 flex-shrink-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleRecordBalance(account)}
+                        className="h-8 w-8 p-0"
+                        title="Record balance"
+                      >
+                        <BarChart3 className="h-4 w-4 text-purple-600" />
+                      </Button>
                       {account.category === 'Debt' && (
                         <Button 
                           variant="ghost" 
@@ -431,6 +448,36 @@ export default function AccountsPage() {
               <div className="py-8 text-center text-gray-500">
                 No amortization data available
               </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Record Balance Modal */}
+        <Dialog open={showRecordBalance} onOpenChange={(open) => {
+          setShowRecordBalance(open)
+          if (!open) {
+            setRecordBalanceAccount(null)
+          }
+        }}>
+          <DialogContent className="w-[95vw] max-w-md mx-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {t('history.recordBalance')} - {recordBalanceAccount?.name}
+              </DialogTitle>
+            </DialogHeader>
+            {recordBalanceAccount && (
+              <BalanceForm
+                accounts={[recordBalanceAccount]}
+                onSuccess={() => {
+                  setShowRecordBalance(false)
+                  setRecordBalanceAccount(null)
+                  fetchAccounts()
+                }}
+                onCancel={() => {
+                  setShowRecordBalance(false)
+                  setRecordBalanceAccount(null)
+                }}
+              />
             )}
           </DialogContent>
         </Dialog>
