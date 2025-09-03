@@ -112,7 +112,6 @@ export default function AccountsPage() {
   }
 
   const handleRecordBalance = (account: AccountWithBalance) => {
-    console.log('Record balance clicked for account:', account.name)
     setRecordBalanceAccount(account)
     setShowRecordBalance(true)
   }
@@ -215,11 +214,11 @@ export default function AccountsPage() {
                     </div>
                     <div className="flex space-x-1 flex-shrink-0">
                       <Button 
-                        variant="outline" 
+                        variant="ghost" 
                         size="sm"
                         onClick={() => handleRecordBalance(account)}
-                        className="h-8 w-8 p-0 border-purple-200 hover:bg-purple-50"
-                        title="Record Balance"
+                        className="h-8 w-8 p-0"
+                        title="Record balance"
                       >
                         <BarChart3 className="h-4 w-4 text-purple-600" />
                       </Button>
