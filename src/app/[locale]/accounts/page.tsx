@@ -177,12 +177,42 @@ export default function AccountsPage() {
                   <CardTitle className="text-base sm:text-lg truncate">{account.name}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-600">IBAN</p>
-                    <p className="font-mono text-xs sm:text-sm bg-gray-50 px-2 py-1 rounded break-all">
-                      {account.iban_encrypted}
-                    </p>
-                  </div>
+                  {account.category !== 'Debt' && (
+                    <div>
+                      <p className="text-sm text-gray-600">IBAN</p>
+                      <p className="font-mono text-xs sm:text-sm bg-gray-50 px-2 py-1 rounded break-all">
+                        {account.iban_encrypted}
+                      </p>
+                    </div>
+                  )}
+                  {account.category === 'Debt' && (
+                    <>
+                      {(account as any).apr_rate && (
+                        <div>
+                          <p className="text-sm text-gray-600">APR Rate</p>
+                          <p className="text-sm">{((account as any).apr_rate * 100).toFixed(2)}%</p>
+                        </div>
+                      )}
+                      {(account as any).monthly_payment && (
+                        <div>
+                          <p className="text-sm text-gray-600">Monthly Payment</p>
+                          <p className="text-sm font-medium">{formatCurrency((account as any).monthly_payment)}</p>
+                        </div>
+                      )}
+                      {(account as any).loan_term_months && (
+                        <div>
+                          <p className="text-sm text-gray-600">Loan Term</p>
+                          <p className="text-sm">{(account as any).loan_term_months} months</p>
+                        </div>
+                      )}
+                      {(account as any).original_balance && (
+                        <div>
+                          <p className="text-sm text-gray-600">Original Balance</p>
+                          <p className="text-sm">{formatCurrency((account as any).original_balance)}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div>
                     <p className="text-sm text-gray-600">{t('accounts.currentBalance')}</p>
                     <p className="text-lg font-semibold">
@@ -229,6 +259,14 @@ export default function AccountsPage() {
                   currency: editingAccount.currency,
                   iban: editingAccount.iban_encrypted,
                   notes: editingAccount.notes || "",
+                  // Include debt amortization fields
+                  apr_rate: (editingAccount as any).apr_rate,
+                  monthly_payment: (editingAccount as any).monthly_payment,
+                  loan_term_months: (editingAccount as any).loan_term_months,
+                  payment_type: (editingAccount as any).payment_type,
+                  auto_update_enabled: (editingAccount as any).auto_update_enabled,
+                  original_balance: (editingAccount as any).original_balance,
+                  loan_start_date: (editingAccount as any).loan_start_date,
                 }}
                 onSuccess={() => {
                   setEditingAccount(null)
