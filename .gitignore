@@ -48,3 +48,6 @@ next-env.d.ts
 *.db
 *.sqlite
 *.sqlite3
+data/backups/backups-metadata.json
+data/backup-schedule.json
+data/backup-schedule.json
