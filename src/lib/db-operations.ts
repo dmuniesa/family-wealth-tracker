@@ -455,7 +455,7 @@ export class BalanceService {
         SELECT 
           account_id,
           amount,
-          ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY date DESC) as rn
+          ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY created_at DESC, id DESC) as rn
         FROM balances
       ) b ON a.id = b.account_id AND b.rn = 1
       WHERE a.family_id = ?
