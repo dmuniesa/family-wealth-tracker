@@ -36,6 +36,34 @@ npm run docker:up
 open http://localhost:3000
 ```
 
+## 🔧 Configuration
+
+### Environment Variables
+Required variables in `.env`:
+```bash
+# Core Configuration
+DATABASE_PATH=./data/wealth_tracker.db
+ENCRYPTION_KEY=your-32-char-encryption-key-here
+SESSION_SECRET=your-32-char-session-secret-here
+
+# Optional: Email Notifications (for weekly reports)
+# SMTP Configuration (traditional email server)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# Resend Configuration (modern email service - alternative to SMTP)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+RESEND_FROM=noreply@yourdomain.com
+
+# Optional: Cloud Storage (for backup feature)
+DROPBOX_CLIENT_ID=your-dropbox-client-id
+DROPBOX_CLIENT_SECRET=your-dropbox-client-secret
+GOOGLE_DRIVE_CLIENT_ID=your-google-drive-client-id
+GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
+```
+
 ## 🏗️ Technical Stack
 - **Frontend**: React with Next.js 15.5.2, Tailwind CSS + shadcn/ui components, Recharts for visualizations
 - **Backend**: Next.js API routes with TypeScript
@@ -44,57 +72,6 @@ open http://localhost:3000
 - **Internationalization**: next-intl (English/Spanish support)
 - **Security**: HTTPS, encrypted sensitive data, input validation
 - **Deployment**: Docker with Docker Compose support
-
-## 📊 Database Schema
-
-### Users Table
-```sql
-- id (Primary Key)
-- email (Unique)
-- password_hash
-- name
-- family_id (Foreign Key - all users share same family_id)
-- created_at
-```
-
-### Accounts Table
-```sql
-- id (Primary Key)
-- family_id (Foreign Key)
-- name (e.g., "Santander Payroll Account")
-- category (ENUM: "Banking", "Investment", "Debt")
-- currency (e.g., "EUR", "USD")
-- iban_encrypted (Full IBAN encrypted)
-- notes (Optional text field)
-- created_at
-- updated_at
--- Debt Amortization Fields (for Debt category accounts)
-- apr_rate (Annual Percentage Rate as decimal)
-- monthly_payment (Fixed monthly payment amount)
-- loan_term_months (Original loan term)
-- remaining_months (Months remaining to pay)
-- payment_type (ENUM: "fixed", "interest_only")
-- auto_update_enabled (Boolean for automatic updates)
-- last_auto_update (Date of last automatic update)
-- original_balance (Original loan amount)
-- loan_start_date (When the loan started)
-```
-
-### Balances Table
-```sql
-- id (Primary Key)
-- account_id (Foreign Key)
-- amount (Decimal)
-- date (Date of balance record)
-- created_at
-- updated_at
--- Payment Tracking Fields
-- balance_type (ENUM: "manual", "automatic", "payment")
-- interest_amount (Interest portion of payment/update)
-- principal_amount (Principal portion of payment)
-- payment_amount (Total payment amount)
-- notes (Transaction description)
-```
 
 ## 🔐 User Authentication & Authorization
 - All users have identical permissions (no role hierarchy)
@@ -298,61 +275,57 @@ open http://localhost:3000
 
 For detailed setup and deployment guides, see the [documentation directory](docs/).
 
-## 🚀 Quick Start
+## 📊 Database Schema
 
-### Development Setup
-```bash
-# Clone the repository
-git clone <repository-url>
-cd family-wealth-track
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your encryption keys and OAuth credentials (optional for cloud backups)
-
-# Start development server
-npm run dev
+### Users Table
+```sql
+- id (Primary Key)
+- email (Unique)
+- password_hash
+- name
+- family_id (Foreign Key - all users share same family_id)
+- created_at
 ```
 
-### Docker Deployment
-```bash
-# Quick deployment
-npm run docker:up
-
-# Access application
-open http://localhost:3000
+### Accounts Table
+```sql
+- id (Primary Key)
+- family_id (Foreign Key)
+- name (e.g., "Santander Payroll Account")
+- category (ENUM: "Banking", "Investment", "Debt")
+- currency (e.g., "EUR", "USD")
+- iban_encrypted (Full IBAN encrypted)
+- notes (Optional text field)
+- created_at
+- updated_at
+-- Debt Amortization Fields (for Debt category accounts)
+- apr_rate (Annual Percentage Rate as decimal)
+- monthly_payment (Fixed monthly payment amount)
+- loan_term_months (Original loan term)
+- remaining_months (Months remaining to pay)
+- payment_type (ENUM: "fixed", "interest_only")
+- auto_update_enabled (Boolean for automatic updates)
+- last_auto_update (Date of last automatic update)
+- original_balance (Original loan amount)
+- loan_start_date (When the loan started)
 ```
 
-## 🔧 Configuration
-
-### Environment Variables
-Required variables in `.env`:
-```bash
-# Core Configuration
-DATABASE_PATH=./data/wealth_tracker.db
-ENCRYPTION_KEY=your-32-char-encryption-key-here
-SESSION_SECRET=your-32-char-session-secret-here
-
-# Optional: Email Notifications (for weekly reports)
-# SMTP Configuration (traditional email server)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-
-# Resend Configuration (modern email service - alternative to SMTP)
-RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-RESEND_FROM=noreply@yourdomain.com
-
-# Optional: Cloud Storage (for backup feature)
-DROPBOX_CLIENT_ID=your-dropbox-client-id
-DROPBOX_CLIENT_SECRET=your-dropbox-client-secret
-GOOGLE_DRIVE_CLIENT_ID=your-google-drive-client-id
-GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
+### Balances Table
+```sql
+- id (Primary Key)
+- account_id (Foreign Key)
+- amount (Decimal)
+- date (Date of balance record)
+- created_at
+- updated_at
+-- Payment Tracking Fields
+- balance_type (ENUM: "manual", "automatic", "payment")
+- interest_amount (Interest portion of payment/update)
+- principal_amount (Principal portion of payment)
+- payment_amount (Total payment amount)
+- notes (Transaction description)
 ```
+
 
 ### Cloud Storage Setup (Optional)
 To enable automatic backup uploads:
