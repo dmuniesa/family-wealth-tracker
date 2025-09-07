@@ -278,6 +278,7 @@ export default function DashboardPage() {
                     fontSize={12}
                     tickMargin={8}
                     stroke="#10B981"
+                    domain={['dataMin - dataMin*0.05', 'dataMax + dataMax*0.05']}
                   />
                   {/* Right Y-axis for Net Worth */}
                   <YAxis 
