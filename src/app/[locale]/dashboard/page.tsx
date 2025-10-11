@@ -273,20 +273,22 @@ export default function DashboardPage() {
                     tickMargin={8}
                   />
                   {/* Left Y-axis for Total Active */}
-                  <YAxis 
+                  <YAxis
                     yAxisId="left"
                     fontSize={12}
                     tickMargin={8}
                     stroke="#10B981"
                     domain={['dataMin - dataMin*0.05', 'dataMax + dataMax*0.05']}
+                    tickFormatter={(value) => `€${value.toFixed(0)}`}
                   />
                   {/* Right Y-axis for Net Worth */}
-                  <YAxis 
+                  <YAxis
                     yAxisId="right"
                     orientation="right"
                     fontSize={12}
                     tickMargin={8}
                     stroke="#3B82F6"
+                    tickFormatter={(value) => `€${value.toFixed(0)}`}
                   />
                   <Tooltip 
                     formatter={(value: number, name: string) => {
