@@ -93,6 +93,7 @@ export default function NotificationsAdminPage() {
   const [saving, setSaving] = useState(false)
   const [testEmail, setTestEmail] = useState('')
   const [testing, setTesting] = useState(false)
+  const [sending, setSending] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   useEffect(() => {
@@ -211,8 +212,9 @@ export default function NotificationsAdminPage() {
   }
 
   const sendWeeklyReports = async () => {
+    setSending(true)
     setMessage(null)
-    
+
     try {
       const response = await fetch('/api/admin/notifications/send', {
         method: 'POST',
@@ -221,7 +223,8 @@ export default function NotificationsAdminPage() {
       })
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Weekly reports sent to all families' })
+        const data = await response.json()
+        setMessage({ type: 'success', text: data.message || 'Weekly reports sent to all families' })
         fetchHistory()
       } else {
         const data = await response.json()
@@ -229,6 +232,8 @@ export default function NotificationsAdminPage() {
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error occurred' })
+    } finally {
+      setSending(false)
     }
   }
 
@@ -559,13 +564,13 @@ export default function NotificationsAdminPage() {
                       Send weekly reports to all families immediately (outside of scheduled time).
                     </p>
                     
-                    <Button 
+                    <Button
                       onClick={sendWeeklyReports}
-                      disabled={!isConfigured}
+                      disabled={!isConfigured || sending}
                       className="w-full"
                     >
                       <Send className="h-4 w-4 mr-2" />
-                      Send Weekly Reports Now
+                      {sending ? 'Sending Reports...' : 'Send Weekly Reports Now'}
                     </Button>
                   </div>
                 </CardContent>
