@@ -155,27 +155,53 @@ export function NotificationManagement() {
     }
   }
 
-  const saveConfig = async () => {
+  const saveNotificationSettings = async () => {
     setSaving(true)
     setMessage(null)
-    
+
     try {
       const response = await fetch('/api/admin/notifications/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          emailConfig,
           notificationSettings
         })
       })
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Configuration saved successfully' })
+        setMessage({ type: 'success', text: 'Schedule saved successfully' })
+        fetchConfig()
+      } else {
+        const data = await response.json()
+        setMessage({ type: 'error', text: data.error || 'Failed to save schedule' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error occurred' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveEmailConfig = async () => {
+    setSaving(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/notifications/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailConfig
+        })
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'SMTP configuration saved successfully' })
         setIsConfigured(true)
         fetchConfig()
       } else {
         const data = await response.json()
-        setMessage({ type: 'error', text: data.error || 'Failed to save configuration' })
+        setMessage({ type: 'error', text: data.error || 'Failed to save SMTP configuration' })
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error occurred' })
@@ -298,8 +324,12 @@ export function NotificationManagement() {
         </div>
       )}
 
-      <Tabs defaultValue="settings" className="w-full" onValueChange={() => { fetchEmailProviders() }}>
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="schedule" className="w-full" onValueChange={() => { fetchEmailProviders() }}>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="schedule">
+            <Clock className="h-4 w-4 mr-2" />
+            Schedule
+          </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="h-4 w-4 mr-2" />
             SMTP
@@ -317,6 +347,124 @@ export function NotificationManagement() {
             History
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="schedule" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Report Schedule</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="notifications-enabled"
+                  checked={notificationSettings.enabled}
+                  onCheckedChange={(checked) => setNotificationSettings({
+                    ...notificationSettings,
+                    enabled: checked
+                  })}
+                />
+                <Label htmlFor="notifications-enabled">Enable weekly email notifications</Label>
+              </div>
+
+              {notificationSettings.enabled && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="day">Day of Week</Label>
+                      <Select
+                        value={notificationSettings.day}
+                        onValueChange={(value) => setNotificationSettings({
+                          ...notificationSettings,
+                          day: value
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sunday">Sunday</SelectItem>
+                          <SelectItem value="monday">Monday</SelectItem>
+                          <SelectItem value="tuesday">Tuesday</SelectItem>
+                          <SelectItem value="wednesday">Wednesday</SelectItem>
+                          <SelectItem value="thursday">Thursday</SelectItem>
+                          <SelectItem value="friday">Friday</SelectItem>
+                          <SelectItem value="saturday">Saturday</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="time">Time</Label>
+                      <Input
+                        id="time"
+                        type="time"
+                        value={notificationSettings.time}
+                        onChange={(e) => setNotificationSettings({
+                          ...notificationSettings,
+                          time: e.target.value
+                        })}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="timezone">Timezone</Label>
+                    <Select
+                      value={notificationSettings.timezone}
+                      onValueChange={(value) => setNotificationSettings({
+                        ...notificationSettings,
+                        timezone: value
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="UTC">UTC</SelectItem>
+                        <SelectItem value="Europe/Madrid">Europe/Madrid</SelectItem>
+                        <SelectItem value="America/New_York">America/New_York</SelectItem>
+                        <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                        <SelectItem value="Asia/Tokyo">Asia/Tokyo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="include-charts"
+                      checked={notificationSettings.includeCharts}
+                      onCheckedChange={(checked) => setNotificationSettings({
+                        ...notificationSettings,
+                        includeCharts: checked
+                      })}
+                    />
+                    <Label htmlFor="include-charts">Include charts in emails</Label>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="custom-message">Custom Message (optional)</Label>
+                    <Textarea
+                      id="custom-message"
+                      value={notificationSettings.customMessage || ''}
+                      onChange={(e) => setNotificationSettings({
+                        ...notificationSettings,
+                        customMessage: e.target.value
+                      })}
+                      placeholder="Add a personal message to weekly reports..."
+                      rows={3}
+                    />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={saveNotificationSettings} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Schedule'}
+            </Button>
+          </div>
+        </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
           <Card>
@@ -394,119 +542,9 @@ export function NotificationManagement() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Weekly Report Schedule</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="notifications-enabled"
-                  checked={notificationSettings.enabled}
-                  onCheckedChange={(checked) => setNotificationSettings({
-                    ...notificationSettings, 
-                    enabled: checked
-                  })}
-                />
-                <Label htmlFor="notifications-enabled">Enable weekly email notifications</Label>
-              </div>
-              
-              {notificationSettings.enabled && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="day">Day of Week</Label>
-                      <Select
-                        value={notificationSettings.day}
-                        onValueChange={(value) => setNotificationSettings({
-                          ...notificationSettings, 
-                          day: value
-                        })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sunday">Sunday</SelectItem>
-                          <SelectItem value="monday">Monday</SelectItem>
-                          <SelectItem value="tuesday">Tuesday</SelectItem>
-                          <SelectItem value="wednesday">Wednesday</SelectItem>
-                          <SelectItem value="thursday">Thursday</SelectItem>
-                          <SelectItem value="friday">Friday</SelectItem>
-                          <SelectItem value="saturday">Saturday</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="time">Time</Label>
-                      <Input
-                        id="time"
-                        type="time"
-                        value={notificationSettings.time}
-                        onChange={(e) => setNotificationSettings({
-                          ...notificationSettings, 
-                          time: e.target.value
-                        })}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="timezone">Timezone</Label>
-                    <Select
-                      value={notificationSettings.timezone}
-                      onValueChange={(value) => setNotificationSettings({
-                        ...notificationSettings, 
-                        timezone: value
-                      })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="UTC">UTC</SelectItem>
-                        <SelectItem value="Europe/Madrid">Europe/Madrid</SelectItem>
-                        <SelectItem value="America/New_York">America/New_York</SelectItem>
-                        <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
-                        <SelectItem value="Asia/Tokyo">Asia/Tokyo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="include-charts"
-                      checked={notificationSettings.includeCharts}
-                      onCheckedChange={(checked) => setNotificationSettings({
-                        ...notificationSettings, 
-                        includeCharts: checked
-                      })}
-                    />
-                    <Label htmlFor="include-charts">Include charts in emails</Label>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="custom-message">Custom Message (optional)</Label>
-                    <Textarea
-                      id="custom-message"
-                      value={notificationSettings.customMessage || ''}
-                      onChange={(e) => setNotificationSettings({
-                        ...notificationSettings, 
-                        customMessage: e.target.value
-                      })}
-                      placeholder="Add a personal message to weekly reports..."
-                      rows={3}
-                    />
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
           <div className="flex justify-end">
-            <Button onClick={saveConfig} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Configuration'}
+            <Button onClick={saveEmailConfig} disabled={saving}>
+              {saving ? 'Saving...' : 'Save SMTP Configuration'}
             </Button>
           </div>
         </TabsContent>
