@@ -144,27 +144,53 @@ export default function NotificationsAdminPage() {
     }
   }
 
-  const saveConfig = async () => {
+  const saveNotificationSettings = async () => {
     setSaving(true)
     setMessage(null)
-    
+
     try {
       const response = await fetch('/api/admin/notifications/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          emailConfig,
           notificationSettings
         })
       })
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Configuration saved successfully' })
+        setMessage({ type: 'success', text: 'Schedule saved successfully' })
+        fetchConfig()
+      } else {
+        const data = await response.json()
+        setMessage({ type: 'error', text: data.error || 'Failed to save schedule' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error occurred' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveEmailConfig = async () => {
+    setSaving(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/notifications/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailConfig
+        })
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'SMTP configuration saved successfully' })
         setIsConfigured(true)
         fetchConfig()
       } else {
         const data = await response.json()
-        setMessage({ type: 'error', text: data.error || 'Failed to save configuration' })
+        setMessage({ type: 'error', text: data.error || 'Failed to save SMTP configuration' })
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error occurred' })
@@ -299,11 +325,15 @@ export default function NotificationsAdminPage() {
             </div>
           )}
 
-          <Tabs defaultValue="settings" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="settings">
+          <Tabs defaultValue="schedule" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="schedule">
+                <Clock className="h-4 w-4 mr-2" />
+                Schedule
+              </TabsTrigger>
+              <TabsTrigger value="smtp">
                 <Settings className="h-4 w-4 mr-2" />
-                Settings
+                SMTP Config
               </TabsTrigger>
               <TabsTrigger value="test">
                 <Send className="h-4 w-4 mr-2" />
@@ -315,82 +345,7 @@ export default function NotificationsAdminPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="settings" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Email Server Configuration</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="host">SMTP Host</Label>
-                      <Input
-                        id="host"
-                        value={emailConfig.host}
-                        onChange={(e) => setEmailConfig({...emailConfig, host: e.target.value})}
-                        placeholder="smtp.gmail.com"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="port">Port</Label>
-                      <Input
-                        id="port"
-                        type="number"
-                        value={emailConfig.port}
-                        onChange={(e) => setEmailConfig({...emailConfig, port: parseInt(e.target.value) || 587})}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="user">Email Address</Label>
-                    <Input
-                      id="user"
-                      type="email"
-                      value={emailConfig.auth.user}
-                      onChange={(e) => setEmailConfig({
-                        ...emailConfig, 
-                        auth: {...emailConfig.auth, user: e.target.value}
-                      })}
-                      placeholder="your-email@gmail.com"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="pass">Password / App Password</Label>
-                    <Input
-                      id="pass"
-                      type="password"
-                      value={emailConfig.auth.pass}
-                      onChange={(e) => setEmailConfig({
-                        ...emailConfig, 
-                        auth: {...emailConfig.auth, pass: e.target.value}
-                      })}
-                      placeholder="Enter password or app-specific password"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="from">From Address</Label>
-                    <Input
-                      id="from"
-                      value={emailConfig.from}
-                      onChange={(e) => setEmailConfig({...emailConfig, from: e.target.value})}
-                      placeholder="Family Wealth Tracker <noreply@yourdomain.com>"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="secure"
-                      checked={emailConfig.secure}
-                      onCheckedChange={(checked) => setEmailConfig({...emailConfig, secure: checked})}
-                    />
-                    <Label htmlFor="secure">Use SSL/TLS (recommended for port 465)</Label>
-                  </div>
-                </CardContent>
-              </Card>
-
+            <TabsContent value="schedule" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Weekly Report Schedule</CardTitle>
@@ -502,8 +457,91 @@ export default function NotificationsAdminPage() {
               </Card>
 
               <div className="flex justify-end">
-                <Button onClick={saveConfig} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Configuration'}
+                <Button onClick={saveNotificationSettings} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Schedule'}
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="smtp" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Email Server Configuration</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="host">SMTP Host</Label>
+                      <Input
+                        id="host"
+                        value={emailConfig.host}
+                        onChange={(e) => setEmailConfig({...emailConfig, host: e.target.value})}
+                        placeholder="smtp.gmail.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="port">Port</Label>
+                      <Input
+                        id="port"
+                        type="number"
+                        value={emailConfig.port}
+                        onChange={(e) => setEmailConfig({...emailConfig, port: parseInt(e.target.value) || 587})}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="user">Email Address</Label>
+                    <Input
+                      id="user"
+                      type="email"
+                      value={emailConfig.auth.user}
+                      onChange={(e) => setEmailConfig({
+                        ...emailConfig,
+                        auth: {...emailConfig.auth, user: e.target.value}
+                      })}
+                      placeholder="your-email@gmail.com"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pass">Password / App Password</Label>
+                    <Input
+                      id="pass"
+                      type="password"
+                      value={emailConfig.auth.pass}
+                      onChange={(e) => setEmailConfig({
+                        ...emailConfig,
+                        auth: {...emailConfig.auth, pass: e.target.value}
+                      })}
+                      placeholder="Enter password or app-specific password"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="from">From Address</Label>
+                    <Input
+                      id="from"
+                      value={emailConfig.from}
+                      onChange={(e) => setEmailConfig({...emailConfig, from: e.target.value})}
+                      placeholder="Family Wealth Tracker <noreply@yourdomain.com>"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="secure"
+                      checked={emailConfig.secure}
+                      onCheckedChange={(checked) => setEmailConfig({...emailConfig, secure: checked})}
+                    />
+                    <Label htmlFor="secure">Use SSL/TLS (recommended for port 465)</Label>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button onClick={saveEmailConfig} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save SMTP Configuration'}
                 </Button>
               </div>
             </TabsContent>

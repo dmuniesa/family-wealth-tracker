@@ -80,38 +80,66 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { emailConfig, notificationSettings } = body;
 
+    // Validate that at least one config is provided
+    if (!emailConfig && !notificationSettings) {
+      return NextResponse.json(
+        { error: 'No configuration provided' },
+        { status: 400 }
+      );
+    }
+
     // Update email configuration if provided
     if (emailConfig) {
-      const validatedEmailConfig = emailConfigSchema.parse(emailConfig);
-      
-      const emailService = getEmailService();
-      await emailService.updateConfig(validatedEmailConfig);
-      
-      // Test the connection
-      const testResult = await emailService.testConnection();
-      if (!testResult.success) {
-        return NextResponse.json(
-          { error: `Email configuration test failed: ${testResult.error}` },
-          { status: 400 }
-        );
+      try {
+        const validatedEmailConfig = emailConfigSchema.parse(emailConfig);
+
+        const emailService = getEmailService();
+        await emailService.updateConfig(validatedEmailConfig);
+
+        // Test the connection
+        const testResult = await emailService.testConnection();
+        if (!testResult.success) {
+          return NextResponse.json(
+            { error: `Email configuration test failed: ${testResult.error}` },
+            { status: 400 }
+          );
+        }
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Invalid email configuration', details: error.issues },
+            { status: 400 }
+          );
+        }
+        throw error;
       }
     }
 
     // Update notification settings if provided
     if (notificationSettings) {
-      const validatedNotificationSettings = notificationSettingsSchema.parse(notificationSettings);
-      await SettingsService.updateNotificationSettings(validatedNotificationSettings);
-      
-      // Update the scheduler
-      const scheduler = NotificationScheduler.getInstance();
-      if (validatedNotificationSettings.enabled) {
-        await scheduler.scheduleWeeklyNotifications(
-          validatedNotificationSettings.day,
-          validatedNotificationSettings.time,
-          validatedNotificationSettings.timezone
-        );
-      } else {
-        await scheduler.stopSchedule();
+      try {
+        const validatedNotificationSettings = notificationSettingsSchema.parse(notificationSettings);
+        await SettingsService.updateNotificationSettings(validatedNotificationSettings);
+
+        // Update the scheduler
+        const scheduler = NotificationScheduler.getInstance();
+        if (validatedNotificationSettings.enabled) {
+          await scheduler.scheduleWeeklyNotifications(
+            validatedNotificationSettings.day,
+            validatedNotificationSettings.time,
+            validatedNotificationSettings.timezone
+          );
+        } else {
+          await scheduler.stopSchedule();
+        }
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Invalid notification settings', details: error.issues },
+            { status: 400 }
+          );
+        }
+        throw error;
       }
     }
 
