@@ -161,9 +161,9 @@ export class WeeklyReportService {
 
   private static async getLatestBalance(accountId: number, beforeDate: Date): Promise<number> {
     const db = await getDatabase();
-    
+
     const balance = await db.get(
-      'SELECT amount FROM balances WHERE account_id = ? AND date <= ? ORDER BY date DESC LIMIT 1',
+      'SELECT amount FROM balances WHERE account_id = ? AND date <= ? ORDER BY created_at DESC, id DESC LIMIT 1',
       [accountId, this.formatDate(beforeDate)]
     ) as { amount: number } | null;
 
