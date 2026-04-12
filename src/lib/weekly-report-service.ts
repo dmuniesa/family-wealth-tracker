@@ -163,7 +163,7 @@ export class WeeklyReportService {
     const db = await getDatabase();
 
     const balance = await db.get(
-      'SELECT amount FROM balances WHERE account_id = ? AND date <= ? ORDER BY created_at DESC, id DESC LIMIT 1',
+      'SELECT amount FROM balances WHERE account_id = ? AND date <= ? ORDER BY date DESC, id DESC LIMIT 1',
       [accountId, this.formatDate(beforeDate)]
     ) as { amount: number } | null;
 
@@ -193,7 +193,10 @@ export class WeeklyReportService {
   }
 
   private static formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   static formatCurrency(amount: number, currency: string = 'EUR'): string {
