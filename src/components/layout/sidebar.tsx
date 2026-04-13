@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { 
-  LayoutDashboard, 
-  Wallet, 
-  History, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Wallet,
+  ArrowLeftRight,
+  History,
+  Settings,
   LogOut,
   Users,
   Shield,
@@ -46,6 +47,11 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
       name: t('navigation.accounts'),
       href: `/${locale}/accounts`,
       icon: Wallet,
+    },
+    {
+      name: t('navigation.transactions'),
+      href: `/${locale}/transactions`,
+      icon: ArrowLeftRight,
     },
     {
       name: t('navigation.history'),

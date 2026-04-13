@@ -6,7 +6,7 @@ import { AuthGuard } from "@/components/auth/auth-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Download, Globe, Copy, Users, Upload, Shield, Mail } from "lucide-react"
+import { Download, Globe, Copy, Users, Upload, Shield, Mail, Sparkles } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -42,6 +42,14 @@ export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null)
+  // AI settings state
+  const [aiApiKey, setAiApiKey] = useState("")
+  const [aiBaseUrl, setAiBaseUrl] = useState("https://api.openai.com/v1")
+  const [aiModel, setAiModel] = useState("gpt-4o-mini")
+  const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [isTestingAi, setIsTestingAi] = useState(false)
+  const [isSavingAi, setIsSavingAi] = useState(false)
+  const [aiSaved, setAiSaved] = useState(false)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -58,7 +66,65 @@ export default function SettingsPage() {
     }
 
     fetchUser()
+    fetchAISettings()
   }, [])
+
+  const fetchAISettings = async () => {
+    try {
+      const res = await fetch('/api/settings/ai')
+      if (res.ok) {
+        const data = await res.json()
+        setAiBaseUrl(data.baseUrl || 'https://api.openai.com/v1')
+        setAiModel(data.model || 'gpt-4o-mini')
+        if (data.lastTest) {
+          try {
+            setAiTestResult(JSON.parse(data.lastTest))
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  const handleSaveAISettings = async () => {
+    setIsSavingAi(true)
+    setAiSaved(false)
+    try {
+      const body: { apiKey?: string; baseUrl?: string; model?: string } = {
+        baseUrl: aiBaseUrl,
+        model: aiModel,
+      }
+      if (aiApiKey) body.apiKey = aiApiKey
+      const res = await fetch('/api/settings/ai', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        setAiSaved(true)
+        setAiApiKey("")
+        fetchAISettings()
+        setTimeout(() => setAiSaved(false), 3000)
+      }
+    } catch {} finally {
+      setIsSavingAi(false)
+    }
+  }
+
+  const handleTestAI = async () => {
+    setIsTestingAi(true)
+    setAiTestResult(null)
+    try {
+      const res = await fetch('/api/settings/ai/test', { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        setAiTestResult(data)
+      }
+    } catch {
+      setAiTestResult({ success: false, message: 'Connection failed' })
+    } finally {
+      setIsTestingAi(false)
+    }
+  }
 
   const handleExportData = async () => {
     try {
@@ -555,6 +621,83 @@ export default function SettingsPage() {
                       : 'text-red-700 bg-red-50'
                   }`}>
                     {importMessage}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Integration Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+                {t('aiSettings.title')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500 mb-4">{t('aiSettings.subtitle')}</p>
+
+              <div className="space-y-4">
+                <div>
+                  <Label>{t('aiSettings.apiKey')}</Label>
+                  <Input
+                    type="password"
+                    placeholder={t('aiSettings.apiKeyPlaceholder')}
+                    value={aiApiKey}
+                    onChange={(e) => setAiApiKey(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Leave empty to keep current key</p>
+                </div>
+
+                <div>
+                  <Label>{t('aiSettings.baseUrl')}</Label>
+                  <Input
+                    placeholder="https://api.openai.com/v1"
+                    value={aiBaseUrl}
+                    onChange={(e) => setAiBaseUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{t('aiSettings.baseUrlDescription')}</p>
+                </div>
+
+                <div>
+                  <Label>{t('aiSettings.model')}</Label>
+                  <Input
+                    placeholder="gpt-4o-mini"
+                    value={aiModel}
+                    onChange={(e) => setAiModel(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={handleTestAI}
+                    disabled={isTestingAi}
+                    className="flex-1"
+                  >
+                    {isTestingAi ? t('aiSettings.testing') : t('aiSettings.testConnection')}
+                  </Button>
+                  <Button
+                    onClick={handleSaveAISettings}
+                    disabled={isSavingAi}
+                    className="flex-1"
+                  >
+                    {isSavingAi ? t('aiSettings.saving') : t('aiSettings.save')}
+                  </Button>
+                </div>
+
+                {aiTestResult && (
+                  <div className={`text-sm p-3 rounded ${
+                    aiTestResult.success ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'
+                  }`}>
+                    {aiTestResult.message}
+                  </div>
+                )}
+
+                {aiSaved && (
+                  <div className="text-sm p-3 rounded text-green-700 bg-green-50">
+                    {t('aiSettings.saved')}
                   </div>
                 )}
               </div>

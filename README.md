@@ -326,6 +326,60 @@ For detailed setup and deployment guides, see the [documentation directory](docs
 - notes (Transaction description)
 ```
 
+### Transactions Table
+```sql
+- id (Primary Key)
+- account_id (Foreign Key)
+- family_id (Foreign Key)
+- category_id (Foreign Key -> transaction_categories)
+- amount (Decimal, signed: negative=expense, positive=income)
+- currency (e.g., "EUR")
+- date (Operation date)
+- value_date (Value date, optional)
+- description (e.g., "Pago con tarjeta", "Transferencia recibida")
+- detail (Counterparty or subject)
+- observations (Full bank observations)
+- movement_type (e.g., "Ingreso", "Gasto", "Pago con tarjeta")
+- balance_after (Running balance from bank statement)
+- is_transfer (Boolean - internal transfer between own accounts)
+- source (e.g., "B100", "BBVA")
+- source_hash (SHA-256 for deduplication, UNIQUE per account)
+- ai_confidence (0-1 from AI categorization)
+- notes (User notes)
+```
+
+### Transaction Categories Table
+```sql
+- id (Primary Key)
+- family_id (Foreign Key)
+- name (e.g., "Groceries", "Transport")
+- type (ENUM: "income", "expense", "both", "non_computable")
+- icon (Lucide icon name)
+- color (Hex color)
+- ai_description (Guidance for AI categorization prompt)
+- is_system (Boolean - seeded default vs user-created)
+```
+
+### Transfer Rules Table
+```sql
+- id (Primary Key)
+- family_id (Foreign Key)
+- rule_type (ENUM: "contains_text", "sender_is", "description_matches")
+- pattern (Text to match)
+- field (ENUM: "description", "detail", "observations", "any")
+- is_active (Boolean)
+```
+
+### Family Settings Table
+```sql
+- id (Primary Key)
+- family_id (Foreign Key, UNIQUE)
+- ai_api_key_encrypted (AES-256-CBC encrypted)
+- ai_base_url (e.g., "https://api.openai.com/v1", "http://localhost:11434/v1")
+- ai_model (e.g., "gpt-4o-mini")
+- ai_last_test (JSON with last test result)
+```
+
 
 ### Cloud Storage Setup (Optional)
 To enable automatic backup uploads:
@@ -358,16 +412,28 @@ Choose between SMTP or Resend for email notifications:
 3. Configure via Admin > Notifications > SMTP tab
 
 ## 📋 Future Enhancements
+- ~~Expense categorization and cash flow analysis~~ ✅ Implemented (see Transactions)
+- ~~Automated bank integration (API)~~ ✅ Implemented (CSV import with auto-detection)
 - Budget tracking and financial goals
 - Multi-currency conversion with real-time rates
 - Mobile app companion
-- Automated bank integration (API)
-- Expense categorization and cash flow analysis
 - Advanced financial reports and debt-to-income ratios
 - Backup encryption and versioning
 - Investment portfolio analysis
 - Cash flow projections and financial planning
 - Integration with external financial services
+
+### 10. Bank Transactions & AI Categorization
+- **CSV Import**: Auto-detect and parse bank statements from multiple banks (B100/Santander, BBVA)
+- **Two-Step Import**: Preview transactions before saving, with duplicate detection via SHA-256 hashing
+- **Transfer Detection**: Rule-based system to identify internal transfers between own accounts (excluded from calculations)
+- **AI Categorization**: Automatic expense/income categorization using OpenAI-compatible APIs (OpenAI, Ollama, z.ai, etc.)
+- **20 Default Categories**: Groceries, Restaurants, Transport, Electronics, Sports Equipment, and more - each with AI descriptions
+- **Manual Category Editing**: Change categories inline from the transaction list or via edit dialog
+- **"Non-computable" Type**: Mark transactions to exclude from totals without deleting them
+- **Monthly Analytics**: Bar charts showing expenses/income by category with month navigation
+- **Configurable AI Provider**: Settings page with base URL, model, and API key management (supports local Ollama)
+- See [docs/TRANSACTIONS.md](docs/TRANSACTIONS.md) for detailed documentation
 
 ---
 

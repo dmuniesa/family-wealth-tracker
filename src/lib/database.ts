@@ -157,6 +157,35 @@ async function initializeDatabase(db: Database) {
   
   await migrateAccountsTableForAmortization(db);
   await migrateDatabaseForSystemLogs(db);
+  await migrateDatabaseForTransactions(db);
+  await migrateDatabaseForPasswordReset(db);
+}
+
+async function migrateDatabaseForPasswordReset(db: Database) {
+  try {
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        token_hash TEXT UNIQUE NOT NULL,
+        expires_at DATETIME NOT NULL,
+        used_at DATETIME DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+
+    await db.run(`
+      CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash)
+    `);
+    await db.run(`
+      CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id)
+    `);
+
+    console.log('Successfully created password_reset_tokens table');
+  } catch (error) {
+    console.error('Error creating password_reset_tokens table:', error);
+  }
 }
 
 async function migrateUsersTableForRoles(db: Database) {
@@ -346,5 +375,100 @@ async function migrateDatabaseForSystemLogs(db: Database) {
     await db.run('ROLLBACK');
     console.error('Error creating system_logs table:', error);
     throw error;
+  }
+}
+
+async function migrateDatabaseForTransactions(db: Database) {
+  try {
+    // Create transaction_categories table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS transaction_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        family_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT CHECK(type IN ('income', 'expense', 'both', 'non_computable')) DEFAULT 'expense',
+        icon TEXT DEFAULT NULL,
+        color TEXT DEFAULT NULL,
+        ai_description TEXT DEFAULT NULL,
+        is_system BOOLEAN DEFAULT FALSE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (family_id) REFERENCES users(family_id),
+        UNIQUE(family_id, name)
+      )
+    `);
+
+    // Create transactions table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id INTEGER NOT NULL,
+        family_id INTEGER NOT NULL,
+        category_id INTEGER DEFAULT NULL,
+        amount DECIMAL(15,2) NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'EUR',
+        date DATE NOT NULL,
+        value_date DATE DEFAULT NULL,
+        description TEXT NOT NULL,
+        detail TEXT DEFAULT NULL,
+        observations TEXT DEFAULT NULL,
+        movement_type TEXT DEFAULT NULL,
+        balance_after DECIMAL(15,2) DEFAULT NULL,
+        is_transfer BOOLEAN DEFAULT FALSE,
+        import_batch_id TEXT DEFAULT NULL,
+        source TEXT DEFAULT NULL,
+        source_hash TEXT NOT NULL,
+        ai_confidence REAL DEFAULT NULL,
+        notes TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+        FOREIGN KEY (family_id) REFERENCES users(family_id),
+        FOREIGN KEY (category_id) REFERENCES transaction_categories(id) ON DELETE SET NULL,
+        UNIQUE(account_id, source_hash)
+      )
+    `);
+
+    // Create transfer_rules table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS transfer_rules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        family_id INTEGER NOT NULL,
+        rule_type TEXT CHECK(rule_type IN ('contains_text', 'sender_is', 'description_matches')) NOT NULL,
+        pattern TEXT NOT NULL,
+        field TEXT CHECK(field IN ('description', 'detail', 'observations', 'any')) NOT NULL DEFAULT 'any',
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (family_id) REFERENCES users(family_id)
+      )
+    `);
+
+    // Create family_settings table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS family_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        family_id INTEGER NOT NULL UNIQUE,
+        ai_api_key_encrypted TEXT DEFAULT NULL,
+        ai_base_url TEXT DEFAULT 'https://api.openai.com/v1',
+        ai_model TEXT DEFAULT 'gpt-4o-mini',
+        ai_last_test TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (family_id) REFERENCES users(family_id)
+      )
+    `);
+
+    // Create indexes for transactions
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_transactions_account_id ON transactions(account_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_transactions_family_id ON transactions(family_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_transactions_is_transfer ON transactions(is_transfer)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_transactions_source_hash ON transactions(source_hash)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_transactions_import_batch ON transactions(import_batch_id)`);
+
+    console.log('Successfully created transactions tables and indexes');
+  } catch (error) {
+    console.error('Error creating transactions tables:', error);
+    // Don't throw - allow app to continue even if tables already exist
   }
 }
