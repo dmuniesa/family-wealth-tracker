@@ -1,16 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useCallback } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { LoginForm } from "@/components/auth/login-form"
 import { RegisterForm } from "@/components/auth/register-form"
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
+import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 import { useTranslations, useLocale } from 'next-intl'
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+type AuthMode = 'login' | 'register' | 'forgot-password' | 'reset-password'
 
 export default function AuthPage() {
   const t = useTranslations()
   const locale = useLocale()
-  const [isLogin, setIsLogin] = useState(true)
+  const searchParams = useSearchParams()
+  const [mode, setMode] = useState<AuthMode>('login')
+  const [resetToken, setResetToken] = useState<string | null>(null)
   const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -22,6 +29,17 @@ export default function AuthPage() {
   const handleRegister = () => {
     router.push(`/${locale}/dashboard`)
   }
+
+  // Read URL params for reset-password flow
+  useEffect(() => {
+    const urlMode = searchParams.get('mode')
+    const urlToken = searchParams.get('token')
+
+    if (urlMode === 'reset-password' && urlToken) {
+      setMode('reset-password')
+      setResetToken(urlToken)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const checkRegistrationStatus = async () => {
@@ -51,6 +69,86 @@ export default function AuthPage() {
     window.location.href = `/${newLocale}/auth`
   }
 
+  const handleResetSuccess = useCallback(() => {
+    setMode('login')
+  }, [])
+
+  const handleInvalidToken = useCallback(() => {
+    setMode('login')
+  }, [])
+
+  const renderAuthForm = () => {
+    if (loading) {
+      return (
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-gray-600">{t('common.loading')}</p>
+        </div>
+      )
+    }
+
+    switch (mode) {
+      case 'forgot-password':
+        return (
+          <ForgotPasswordForm
+            onBackToLogin={() => setMode('login')}
+          />
+        )
+
+      case 'reset-password':
+        if (resetToken) {
+          return (
+            <ResetPasswordForm
+              token={resetToken}
+              onSuccess={handleResetSuccess}
+              onInvalidToken={handleInvalidToken}
+            />
+          )
+        }
+        return (
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>{t('auth.resetPasswordTitle')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-md text-sm">
+                {t('auth.invalidOrExpiredToken')}
+              </div>
+            </CardContent>
+          </Card>
+        )
+
+      case 'register':
+        if (registrationEnabled) {
+          return (
+            <RegisterForm
+              onRegister={handleRegister}
+              onSwitchToLogin={() => setMode('login')}
+            />
+          )
+        }
+        return (
+          <LoginForm
+            onLogin={handleLogin}
+            onSwitchToRegister={() => {}}
+            onSwitchToForgotPassword={() => setMode('forgot-password')}
+            registrationEnabled={false}
+          />
+        )
+
+      case 'login':
+      default:
+        return (
+          <LoginForm
+            onLogin={handleLogin}
+            onSwitchToRegister={() => registrationEnabled && setMode('register')}
+            onSwitchToForgotPassword={() => setMode('forgot-password')}
+            registrationEnabled={registrationEnabled}
+          />
+        )
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md p-6">
@@ -68,29 +166,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        {loading ? (
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-gray-600">{t('common.loading')}</p>
-          </div>
-        ) : isLogin ? (
-          <LoginForm
-            onLogin={handleLogin}
-            onSwitchToRegister={() => registrationEnabled && setIsLogin(false)}
-            registrationEnabled={registrationEnabled}
-          />
-        ) : registrationEnabled ? (
-          <RegisterForm
-            onRegister={handleRegister}
-            onSwitchToLogin={() => setIsLogin(true)}
-          />
-        ) : (
-          <LoginForm
-            onLogin={handleLogin}
-            onSwitchToRegister={() => {}}
-            registrationEnabled={false}
-          />
-        )}
+        {renderAuthForm()}
 
         {/* Language Selection */}
         <div className="mt-8 pt-6 border-t border-gray-200">

@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useTranslations } from 'next-intl'
-import type { User } from "@/types"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,45 +18,39 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 
-// Create schema function to accept translated messages
-const createLoginSchema = (t: any) => z.object({
+const createForgotPasswordSchema = (t: any) => z.object({
   email: z.string().email(t('forms.invalidEmail')),
-  password: z.string().min(1, t('forms.required')),
 })
 
-type LoginFormValues = {
+type ForgotPasswordFormValues = {
   email: string
-  password: string
 }
 
-interface LoginFormProps {
-  onLogin: (user: User) => void
-  onSwitchToRegister: () => void
-  onSwitchToForgotPassword: () => void
-  registrationEnabled?: boolean
+interface ForgotPasswordFormProps {
+  onBackToLogin: () => void
 }
 
-export function LoginForm({ onLogin, onSwitchToRegister, onSwitchToForgotPassword, registrationEnabled = true }: LoginFormProps) {
+export function ForgotPasswordForm({ onBackToLogin }: ForgotPasswordFormProps) {
   const t = useTranslations()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [emailSent, setEmailSent] = useState(false)
 
-  const loginSchema = createLoginSchema(t)
-  
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const forgotPasswordSchema = createForgotPasswordSchema(t)
+
+  const form = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: "",
-      password: "",
     },
   })
 
-  async function onSubmit(values: LoginFormValues) {
+  async function onSubmit(values: ForgotPasswordFormValues) {
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,10 +61,10 @@ export function LoginForm({ onLogin, onSwitchToRegister, onSwitchToForgotPasswor
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed')
+        throw new Error(data.error || 'Failed to send reset email')
       }
 
-      onLogin(data.user)
+      setEmailSent(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'))
     } finally {
@@ -79,12 +72,37 @@ export function LoginForm({ onLogin, onSwitchToRegister, onSwitchToForgotPasswor
     }
   }
 
+  if (emailSent) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>{t('auth.forgotPasswordTitle')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-md text-sm">
+            {t('auth.resetEmailSent')}
+          </div>
+          <div className="text-center">
+            <Button
+              type="button"
+              variant="link"
+              onClick={onBackToLogin}
+              className="text-sm"
+            >
+              {t('auth.backToLogin')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>{t('auth.login')}</CardTitle>
+        <CardTitle>{t('auth.forgotPasswordTitle')}</CardTitle>
         <CardDescription>
-          {t('auth.credentials')}
+          {t('auth.forgotPasswordDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -103,49 +121,24 @@ export function LoginForm({ onLogin, onSwitchToRegister, onSwitchToForgotPasswor
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('auth.password')}</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder={t('auth.password')} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             {error && (
               <div className="text-sm text-destructive bg-destructive/10 p-3 rounded">
                 {error}
               </div>
             )}
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? t('auth.signingIn') : t('auth.signInButton')}
+              {isLoading ? t('auth.sendingResetLink') : t('auth.sendResetLink')}
             </Button>
             <div className="text-center">
               <Button
                 type="button"
                 variant="link"
-                onClick={onSwitchToForgotPassword}
+                onClick={onBackToLogin}
                 className="text-sm"
               >
-                {t('auth.forgotPassword')}
+                {t('auth.backToLogin')}
               </Button>
             </div>
-            {registrationEnabled && (
-              <div className="text-center">
-                <Button
-                  type="button"
-                  variant="link"
-                  onClick={onSwitchToRegister}
-                  className="text-sm"
-                >
-                  {t('auth.switchToRegister')}
-                </Button>
-              </div>
-            )}
           </form>
         </Form>
       </CardContent>
