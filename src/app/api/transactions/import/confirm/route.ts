@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { TransactionService } from '@/lib/transaction-service';
+import { BalanceService } from '@/lib/db-operations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,10 +32,29 @@ export async function POST(request: NextRequest) {
         observations: t.observations || undefined,
       },
       isTransfer: t.isTransfer || false,
+      categoryId: t.categoryId || null,
       source: source || 'csv',
     }));
 
     const result = await TransactionService.createTransactions(inputs);
+
+    // Extract daily balances from imported transactions
+    // For each date, keep only the last balanceAfter value
+    const dailyBalances = new Map<string, number>();
+    for (const t of transactions) {
+      if (t.balanceAfter != null && !isNaN(t.balanceAfter) && t.date) {
+        dailyBalances.set(t.date, Number(t.balanceAfter));
+      }
+    }
+
+    // Upsert balance records (one per day)
+    for (const [date, amount] of dailyBalances) {
+      try {
+        await BalanceService.upsertBalance(accountId, amount, date, 'import');
+      } catch (e) {
+        console.error(`Failed to save balance for ${date}:`, e);
+      }
+    }
 
     return NextResponse.json(result);
   } catch (error) {

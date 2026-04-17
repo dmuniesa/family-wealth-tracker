@@ -393,6 +393,25 @@ export class AccountService {
 }
 
 export class BalanceService {
+  static async upsertBalance(accountId: number, amount: number, date: string, balanceType: string = 'import'): Promise<void> {
+    const db = await getDatabase();
+    const existing = await db.get(
+      'SELECT id FROM balances WHERE account_id = ? AND date = ? AND balance_type = ?',
+      [accountId, date, balanceType]
+    ) as any;
+    if (existing) {
+      await db.run(
+        'UPDATE balances SET amount = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [amount, existing.id]
+      );
+    } else {
+      await db.run(
+        'INSERT INTO balances (account_id, amount, date, balance_type, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+        [accountId, amount, date, balanceType]
+      );
+    }
+  }
+
   static async createBalance(accountId: number, amount: number, date: string): Promise<number> {
     const db = await getDatabase();
     const result = await db.run(

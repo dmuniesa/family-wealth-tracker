@@ -9,6 +9,7 @@ export interface TransactionFilters {
   month?: string; // YYYY-MM
   categoryId?: number;
   isTransfer?: boolean;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -18,6 +19,7 @@ export interface CreateTransactionInput {
   familyId: number;
   parsed: ParsedTransaction;
   isTransfer: boolean;
+  categoryId?: number | null;
   source: string;
 }
 
@@ -51,6 +53,11 @@ export class TransactionService {
     if (filters.isTransfer !== undefined) {
       conditions.push('t.is_transfer = ?');
       params.push(filters.isTransfer ? 1 : 0);
+    }
+    if (filters.search) {
+      conditions.push('(t.description LIKE ? OR t.detail LIKE ? OR t.observations LIKE ?)');
+      const searchTerm = `%${filters.search}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
     }
 
     const where = conditions.join(' AND ');
@@ -126,10 +133,11 @@ export class TransactionService {
             date, value_date, description, detail, observations,
             movement_type, balance_after, is_transfer, import_batch_id,
             source, source_hash
-          ) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             input.accountId,
             input.familyId,
+            input.categoryId || null,
             input.parsed.amount,
             input.parsed.currency,
             input.parsed.date,
@@ -190,6 +198,34 @@ export class TransactionService {
     const result = await db.run(
       `DELETE FROM transactions WHERE id IN (${placeholders}) AND family_id = ?`,
       [...ids, familyId]
+    );
+    return result.changes;
+  }
+
+  static async batchUpdate(ids: number[], familyId: number, updates: {
+    category_id?: number | null;
+    notes?: string;
+    is_transfer?: boolean;
+  }): Promise<number> {
+    const db = await getDatabase();
+    if (ids.length === 0) return 0;
+
+    const sets: string[] = [];
+    const params: unknown[] = [];
+
+    if (updates.category_id !== undefined) { sets.push('category_id = ?'); params.push(updates.category_id); }
+    if (updates.notes !== undefined) { sets.push('notes = ?'); params.push(updates.notes); }
+    if (updates.is_transfer !== undefined) { sets.push('is_transfer = ?'); params.push(updates.is_transfer ? 1 : 0); }
+
+    if (sets.length === 0) return 0;
+
+    sets.push("updated_at = datetime('now')");
+    const placeholders = ids.map(() => '?').join(',');
+    params.push(...ids, familyId);
+
+    const result = await db.run(
+      `UPDATE transactions SET ${sets.join(', ')} WHERE id IN (${placeholders}) AND family_id = ?`,
+      params
     );
     return result.changes;
   }

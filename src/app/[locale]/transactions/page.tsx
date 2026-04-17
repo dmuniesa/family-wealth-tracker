@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Upload, Edit, Trash2, ArrowLeftRight, Sparkles, Ban,
-  ChevronLeft, ChevronRight, Filter, X
+  Upload, Edit, Trash2, ArrowLeftRight, Sparkles,
+  ChevronLeft, ChevronRight, X, CheckSquare,
+  Square, Search
 } from "lucide-react"
 import { TransactionImportDialog } from "@/components/transactions/transaction-import-dialog"
 import { TransactionEditDialog } from "@/components/transactions/transaction-edit-dialog"
@@ -32,20 +33,26 @@ export default function TransactionsPage() {
   })
   const [filterCategoryId, setFilterCategoryId] = useState<number | "">("")
   const [filterTransfer, setFilterTransfer] = useState<"all" | "only" | "exclude">("all")
+  const [searchQuery, setSearchQuery] = useState("")
   const [page, setPage] = useState(1)
-  const [showFilters, setShowFilters] = useState(false)
 
   // Dialogs
   const [importOpen, setImportOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+
+  // Bulk selection
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkCategory, setBulkCategory] = useState<string>("")
 
   const limit = 50
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
+      const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""
       const [txRes, accRes, catRes] = await Promise.all([
-        fetch(`/api/transactions?accountId=${filterAccountId || ""}&month=${filterMonth || ""}&categoryId=${filterCategoryId || ""}&isTransfer=${filterTransfer === "all" ? "" : filterTransfer === "only"}&page=${page}&limit=${limit}`),
+        fetch(`/api/transactions?accountId=${filterAccountId || ""}&month=${filterMonth || ""}&categoryId=${filterCategoryId || ""}&isTransfer=${filterTransfer === "all" ? "" : filterTransfer === "only"}&page=${page}&limit=${limit}${searchParam}`),
         fetch("/api/accounts"),
         fetch("/api/transactions/categories"),
       ])
@@ -62,13 +69,124 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterAccountId, filterMonth, filterCategoryId, filterTransfer, page])
+  }, [filterAccountId, filterMonth, filterCategoryId, filterTransfer, searchQuery, page])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
   const bankingAccounts = accounts.filter(a => a.category === "Banking")
+
+  // Selection helpers
+  const allCurrentPageSelected = useMemo(() => {
+    return transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id))
+  }, [transactions, selectedIds])
+
+  const selectedCount = selectedIds.size
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (allCurrentPageSelected) {
+      // Deselect all on current page
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        transactions.forEach(tx => next.delete(tx.id))
+        return next
+      })
+    } else {
+      // Select all on current page
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        transactions.forEach(tx => next.add(tx.id))
+        return next
+      })
+    }
+  }
+
+  const clearSelection = () => {
+    setSelectedIds(new Set())
+    setSelectionMode(false)
+    setBulkCategory("")
+  }
+
+  const enterSelectionMode = (firstId?: number) => {
+    setSelectionMode(true)
+    if (firstId !== undefined) {
+      setSelectedIds(new Set([firstId]))
+    }
+  }
+
+  // Bulk handlers
+  const handleBulkCategoryChange = async () => {
+    if (!bulkCategory || selectedCount === 0) return
+    try {
+      const res = await fetch("/api/transactions/batch-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          updates: { category_id: Number(bulkCategory) }
+        }),
+      })
+      if (res.ok) {
+        setSelectedIds(new Set())
+        setBulkCategory("")
+        setSelectionMode(false)
+        fetchData()
+      }
+    } catch (err) {
+      console.error("Failed to bulk update category:", err)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedCount === 0) return
+    const msg = t("transactions.bulkDeleteConfirm", { count: selectedCount })
+    if (!confirm(msg)) return
+
+    try {
+      await fetch("/api/transactions/batch-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      })
+      setSelectedIds(new Set())
+      setSelectionMode(false)
+      fetchData()
+    } catch (err) {
+      console.error("Failed to bulk delete:", err)
+    }
+  }
+
+  const handleBulkToggleTransfer = async (markAsTransfer: boolean) => {
+    if (selectedCount === 0) return
+    try {
+      await fetch("/api/transactions/batch-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          updates: { is_transfer: markAsTransfer }
+        }),
+      })
+      setSelectedIds(new Set())
+      setSelectionMode(false)
+      fetchData()
+    } catch (err) {
+      console.error("Failed to bulk toggle transfer:", err)
+    }
+  }
 
   const handleCategorizeAll = async () => {
     const uncategorizedIds = transactions
@@ -168,16 +286,114 @@ export default function TransactionsPage() {
               <p className="text-gray-600">{t("transactions.subtitle")}</p>
             </div>
             <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={handleCategorizeAll} title={t("transactions.categorizeAll")}>
-                <Sparkles className="h-4 w-4 mr-1" />
-                {t("transactions.aiCategorize")}
-              </Button>
-              <Button size="sm" onClick={() => setImportOpen(true)}>
-                <Upload className="h-4 w-4 mr-1" />
-                {t("transactions.importCsv")}
-              </Button>
+              {!selectionMode && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => enterSelectionMode()} title={t("transactions.selectionMode")}>
+                    <CheckSquare className="h-4 w-4 mr-1" />
+                    {t("transactions.selectionMode")}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleCategorizeAll} title={t("transactions.categorizeAll")}>
+                    <Sparkles className="h-4 w-4 mr-1" />
+                    {t("transactions.aiCategorize")}
+                  </Button>
+                  <Button size="sm" onClick={() => setImportOpen(true)}>
+                    <Upload className="h-4 w-4 mr-1" />
+                    {t("transactions.importCsv")}
+                  </Button>
+                </>
+              )}
+              {selectionMode && (
+                <Button variant="outline" size="sm" onClick={clearSelection}>
+                  <X className="h-4 w-4 mr-1" />
+                  {t("transactions.exitSelection")}
+                </Button>
+              )}
             </div>
           </div>
+
+          {/* Bulk Actions Bar */}
+          {selectionMode && (
+            <Card className="border-blue-200 bg-blue-50/50">
+              <CardContent className="p-3">
+                <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                  <div className="flex items-center space-x-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleSelectAll}
+                      className="text-sm"
+                    >
+                      {allCurrentPageSelected ? (
+                        <Square className="h-4 w-4 mr-1" />
+                      ) : (
+                        <CheckSquare className="h-4 w-4 mr-1" />
+                      )}
+                      {allCurrentPageSelected ? t("transactions.deselectAll") : t("transactions.selectAll")}
+                    </Button>
+                    <span className="text-sm font-medium text-blue-700">
+                      {selectedCount} {t("transactions.selected")}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Bulk category dropdown */}
+                    <div className="flex items-center gap-1">
+                      <select
+                        className="text-xs rounded-md border border-blue-200 bg-white px-2 py-1.5 max-w-[160px]"
+                        value={bulkCategory}
+                        onChange={(e) => setBulkCategory(e.target.value)}
+                      >
+                        <option value="">{t("transactions.bulkCategoryPlaceholder")}</option>
+                        {categories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        disabled={!bulkCategory || selectedCount === 0}
+                        onClick={handleBulkCategoryChange}
+                      >
+                        {t("transactions.bulkSetCategory")}
+                      </Button>
+                    </div>
+                    {/* Bulk transfer toggle */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={selectedCount === 0}
+                      onClick={() => handleBulkToggleTransfer(true)}
+                    >
+                      <ArrowLeftRight className="h-3 w-3 mr-1" />
+                      {t("transactions.bulkMarkAsTransfer")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      disabled={selectedCount === 0}
+                      onClick={() => handleBulkToggleTransfer(false)}
+                    >
+                      <ArrowLeftRight className="h-3 w-3 mr-1" />
+                      {t("transactions.bulkUnmarkTransfer")}
+                    </Button>
+                    {/* Bulk delete */}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-7 text-xs"
+                      disabled={selectedCount === 0}
+                      onClick={handleBulkDelete}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      {t("transactions.bulkDelete")}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Summary cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -206,15 +422,29 @@ export default function TransactionsPage() {
           {/* Filters */}
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)}>
-                  <Filter className="h-4 w-4 mr-1" />
-                  {t("transactions.filters")}
-                </Button>
-                <span className="text-sm text-gray-500">{total} {t("transactions.transactions")}</span>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    className="w-full rounded-md border border-gray-300 pl-9 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={t("transactions.searchPlaceholder")}
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+                  />
+                  {searchQuery && (
+                    <button
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={() => { setSearchQuery(""); setPage(1) }}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <span className="text-sm text-gray-500 whitespace-nowrap">{total} {t("transactions.transactions")}</span>
               </div>
 
-              {/* Inline filter row */}
+              {/* Filter row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">{t("transactions.month")}</label>
@@ -292,7 +522,16 @@ export default function TransactionsPage() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b bg-gray-50">
+                            {selectionMode && (
+                              <th className="py-3 px-2 w-10">
+                                <Checkbox
+                                  checked={allCurrentPageSelected}
+                                  onCheckedChange={toggleSelectAll}
+                                />
+                              </th>
+                            )}
                             <th className="text-left py-3 px-4">{t("transactions.date")}</th>
+                            <th className="text-left py-3 px-4">{t("transactions.account")}</th>
                             <th className="text-left py-3 px-4">{t("transactions.description")}</th>
                             <th className="text-left py-3 px-4">{t("transactions.detail")}</th>
                             <th className="text-left py-3 px-4">{t("transactions.category")}</th>
@@ -302,13 +541,29 @@ export default function TransactionsPage() {
                         </thead>
                         <tbody>
                           {transactions.map((tx) => (
-                            <tr key={tx.id} className={`border-b hover:bg-gray-50 ${tx.is_transfer ? "bg-blue-50/50" : ""}`}>
+                            <tr
+                              key={tx.id}
+                              className={`border-b hover:bg-gray-50 ${
+                                tx.is_transfer ? "bg-blue-50/50" : ""
+                              } ${
+                                selectionMode && selectedIds.has(tx.id) ? "bg-blue-100/50" : ""
+                              }`}
+                            >
+                              {selectionMode && (
+                                <td className="py-3 px-2 text-center">
+                                  <Checkbox
+                                    checked={selectedIds.has(tx.id)}
+                                    onCheckedChange={() => toggleSelect(tx.id)}
+                                  />
+                                </td>
+                              )}
                               <td className="py-3 px-4 whitespace-nowrap">{tx.date}</td>
+                              <td className="py-3 px-4 whitespace-nowrap text-gray-500">{tx.account_name}</td>
                               <td className="py-3 px-4">
                                 <div className="flex items-center">
-                                  {tx.is_transfer && (
+                                  {tx.is_transfer ? (
                                     <ArrowLeftRight className="h-3 w-3 text-blue-500 mr-1 flex-shrink-0" />
-                                  )}
+                                  ) : null}
                                   <span className="truncate max-w-[200px]">{tx.description}</span>
                                 </div>
                               </td>
@@ -330,31 +585,46 @@ export default function TransactionsPage() {
                               </td>
                               <td className="py-3 px-4">
                                 <div className="flex justify-center space-x-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0"
-                                    onClick={() => handleToggleTransfer(tx.id, tx.is_transfer)}
-                                    title={t("transactions.toggleTransfer")}
-                                  >
-                                    <ArrowLeftRight className={`h-3.5 w-3.5 ${tx.is_transfer ? "text-blue-500" : "text-gray-400"}`} />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0"
-                                    onClick={() => setEditingTransaction(tx)}
-                                  >
-                                    <Edit className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0"
-                                    onClick={() => handleDelete(tx.id)}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                                  </Button>
+                                  {!selectionMode && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => handleToggleTransfer(tx.id, tx.is_transfer)}
+                                        title={t("transactions.toggleTransfer")}
+                                      >
+                                        <ArrowLeftRight className={`h-3.5 w-3.5 ${tx.is_transfer ? "text-blue-500" : "text-gray-400"}`} />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => setEditingTransaction(tx)}
+                                      >
+                                        <Edit className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => handleDelete(tx.id)}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                                      </Button>
+                                    </>
+                                  )}
+                                  {selectionMode && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0"
+                                      onClick={() => enterSelectionMode(tx.id)}
+                                      title={t("transactions.toggleTransfer")}
+                                    >
+                                      <ArrowLeftRight className={`h-3.5 w-3.5 ${tx.is_transfer ? "text-blue-500" : "text-gray-400"}`} />
+                                    </Button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -369,18 +639,35 @@ export default function TransactionsPage() {
               {/* Mobile cards */}
               <div className="lg:hidden space-y-3">
                 {transactions.map((tx) => (
-                  <Card key={tx.id} className={`hover:shadow-md ${tx.is_transfer ? "border-blue-200" : ""}`}>
+                  <Card
+                    key={tx.id}
+                    className={`hover:shadow-md ${
+                      tx.is_transfer ? "border-blue-200" : ""
+                    } ${
+                      selectionMode && selectedIds.has(tx.id) ? "border-blue-400 bg-blue-50/50" : ""
+                    }`}
+                  >
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            {tx.is_transfer && (
-                              <ArrowLeftRight className="h-3 w-3 text-blue-500 flex-shrink-0" />
-                            )}
-                            <span className="text-xs text-gray-500">{tx.date}</span>
+                        <div className="flex items-start space-x-2 min-w-0 flex-1">
+                          {selectionMode && (
+                            <Checkbox
+                              checked={selectedIds.has(tx.id)}
+                              onCheckedChange={() => toggleSelect(tx.id)}
+                              className="mt-1"
+                            />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              {tx.is_transfer ? (
+                                <ArrowLeftRight className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                              ) : null}
+                              <span className="text-xs text-gray-500">{tx.date}</span>
+                              {tx.account_name && <span className="text-xs text-blue-600">· {tx.account_name}</span>}
+                            </div>
+                            <p className="font-medium text-gray-900 truncate">{tx.description}</p>
+                            {tx.detail && <p className="text-xs text-gray-500 truncate">{tx.detail}</p>}
                           </div>
-                          <p className="font-medium text-gray-900 truncate">{tx.description}</p>
-                          {tx.detail && <p className="text-xs text-gray-500 truncate">{tx.detail}</p>}
                         </div>
                         <div className="text-right ml-2">
                           <p className={`font-bold ${tx.amount < 0 ? "text-red-600" : "text-green-600"}`}>
@@ -399,16 +686,18 @@ export default function TransactionsPage() {
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
                           ))}
                         </select>
-                        <div className="flex space-x-1">
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
-                            onClick={() => handleToggleTransfer(tx.id, tx.is_transfer)}>
-                            <ArrowLeftRight className={`h-3.5 w-3.5 ${tx.is_transfer ? "text-blue-500" : "text-gray-400"}`} />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
-                            onClick={() => setEditingTransaction(tx)}>
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                        {!selectionMode && (
+                          <div className="flex space-x-1">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                              onClick={() => handleToggleTransfer(tx.id, tx.is_transfer)}>
+                              <ArrowLeftRight className={`h-3.5 w-3.5 ${tx.is_transfer ? "text-blue-500" : "text-gray-400"}`} />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                              onClick={() => setEditingTransaction(tx)}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

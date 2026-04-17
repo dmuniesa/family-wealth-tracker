@@ -14,7 +14,8 @@ import {
   LogOut,
   Users,
   Shield,
-  Mail
+  Mail,
+  Tag
 } from "lucide-react"
 import { useTranslations, useLocale } from 'next-intl'
 import type { User } from "@/types"
@@ -52,6 +53,11 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
       name: t('navigation.transactions'),
       href: `/${locale}/transactions`,
       icon: ArrowLeftRight,
+    },
+    {
+      name: t('navigation.categories'),
+      href: `/${locale}/categories`,
+      icon: Tag,
     },
     {
       name: t('navigation.history'),

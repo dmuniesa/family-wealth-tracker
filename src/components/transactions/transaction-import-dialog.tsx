@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Upload, CheckCircle, AlertCircle, ArrowRight, Ban } from "lucide-react"
+import { Upload, CheckCircle, AlertCircle, ArrowRight, Ban, ArrowLeftRight, Sparkles, Loader2, Search, X } from "lucide-react"
 import { useTranslations } from "next-intl"
-import type { Account } from "@/types"
+import type { Account, TransactionCategory } from "@/types"
 
 interface ImportDialogProps {
   open: boolean
@@ -26,6 +26,7 @@ interface PreviewTransaction {
   balanceAfter?: number
   observations?: string
   isTransfer: boolean
+  categoryId?: number | null
 }
 
 export function TransactionImportDialog({ open, onOpenChange, accounts, onSuccess }: ImportDialogProps) {
@@ -37,12 +38,24 @@ export function TransactionImportDialog({ open, onOpenChange, accounts, onSucces
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null)
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
   const [detectedFormat, setDetectedFormat] = useState("")
   const [previewTransactions, setPreviewTransactions] = useState<PreviewTransaction[]>([])
+  const [categories, setCategories] = useState<TransactionCategory[]>([])
   const [duplicateCount, setDuplicateCount] = useState(0)
   const [parseErrors, setParseErrors] = useState<{ row: number; message: string }[]>([])
   const [result, setResult] = useState<{ saved: number; duplicates: number; errors: number } | null>(null)
   const [error, setError] = useState("")
+  const [filterText, setFilterText] = useState("")
+
+  useEffect(() => {
+    if (open && step === 2 && categories.length === 0) {
+      fetch("/api/transactions/categories")
+        .then(res => res.ok ? res.json() : [])
+        .then(data => setCategories(data))
+        .catch(() => {})
+    }
+  }, [open, step, categories.length])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -84,6 +97,54 @@ export function TransactionImportDialog({ open, onOpenChange, accounts, onSucces
       setError("Failed to parse CSV")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAiCategorize = async () => {
+    if (previewTransactions.length === 0) return
+    setAiLoading(true)
+    setError("")
+
+    try {
+      const uncategorized = previewTransactions
+        .map((tx, i) => ({ ...tx, index: i }))
+        .filter(tx => !tx.categoryId)
+
+      if (uncategorized.length === 0) return
+
+      const res = await fetch("/api/transactions/categorize/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transactions: uncategorized.map(tx => ({
+            index: tx.index,
+            description: tx.description,
+            detail: tx.detail || "",
+            amount: tx.amount,
+            movementType: tx.movementType || "",
+          })),
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || "AI categorization failed")
+        return
+      }
+
+      // Apply AI results
+      setPreviewTransactions(prev => prev.map((tx, i) => {
+        const match = data.categorizations.find((c: { index: number; categoryId: number }) => c.index === i)
+        if (match) {
+          return { ...tx, categoryId: match.categoryId }
+        }
+        return tx
+      }))
+    } catch (err) {
+      setError("Failed to categorize with AI")
+    } finally {
+      setAiLoading(false)
     }
   }
 
@@ -138,6 +199,26 @@ export function TransactionImportDialog({ open, onOpenChange, accounts, onSucces
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(amount)
   }
+
+  const toggleTransfer = (index: number) => {
+    setPreviewTransactions(prev => prev.map((tx, i) =>
+      i === index ? { ...tx, isTransfer: !tx.isTransfer } : tx
+    ))
+  }
+
+  const updateCategory = (index: number, categoryId: number | null) => {
+    setPreviewTransactions(prev => prev.map((tx, i) =>
+      i === index ? { ...tx, categoryId } : tx
+    ))
+  }
+
+  const filteredTransactions = filterText
+    ? previewTransactions.filter(tx =>
+        tx.description.toLowerCase().includes(filterText.toLowerCase()) ||
+        (tx.detail && tx.detail.toLowerCase().includes(filterText.toLowerCase())) ||
+        String(tx.amount).includes(filterText)
+      )
+    : previewTransactions
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -242,6 +323,42 @@ export function TransactionImportDialog({ open, onOpenChange, accounts, onSucces
               </div>
             )}
 
+            {/* Filter + AI Categorize */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  className="w-full rounded-md border border-gray-300 pl-8 pr-8 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder={t("transactions.search")}
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                />
+                {filterText && (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => setFilterText("")}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAiCategorize}
+                disabled={aiLoading || previewTransactions.length === 0}
+              >
+                {aiLoading ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-1" />
+                )}
+                {t("transactions.aiCategorize")}
+              </Button>
+            </div>
+
             <div className="overflow-x-auto max-h-[400px] overflow-y-auto border rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
@@ -249,29 +366,52 @@ export function TransactionImportDialog({ open, onOpenChange, accounts, onSucces
                     <th className="text-left py-2 px-3">{t("transactions.date")}</th>
                     <th className="text-left py-2 px-3">{t("transactions.description")}</th>
                     <th className="text-left py-2 px-3">{t("transactions.detail")}</th>
+                    <th className="text-left py-2 px-3">{t("transactions.category")}</th>
                     <th className="text-right py-2 px-3">{t("transactions.amount")}</th>
                     <th className="text-center py-2 px-3">{t("transactions.transfer")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {previewTransactions.map((tx, i) => (
+                  {filteredTransactions.map((tx) => {
+                    const i = previewTransactions.indexOf(tx)
+                    return (
                     <tr key={i} className={`border-b ${tx.isTransfer ? "bg-blue-50" : ""}`}>
                       <td className="py-2 px-3 whitespace-nowrap">{tx.date}</td>
                       <td className="py-2 px-3 max-w-[200px] truncate">{tx.description}</td>
                       <td className="py-2 px-3 max-w-[200px] truncate">{tx.detail}</td>
+                      <td className="py-2 px-3">
+                        <select
+                          className="text-xs rounded border border-gray-200 px-1 py-0.5 max-w-[130px]"
+                          value={tx.categoryId || ""}
+                          onChange={(e) => updateCategory(i, e.target.value ? Number(e.target.value) : null)}
+                        >
+                          <option value="">—</option>
+                          {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          ))}
+                        </select>
+                      </td>
                       <td className={`py-2 px-3 text-right font-medium ${tx.amount < 0 ? "text-red-600" : "text-green-600"}`}>
                         {formatCurrency(tx.amount)}
                       </td>
                       <td className="py-2 px-3 text-center">
-                        {tx.isTransfer && (
-                          <span className="inline-flex items-center text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                            <ArrowRight className="h-3 w-3 mr-1" />
-                            Transfer
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full transition-colors ${
+                            tx.isTransfer
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                          }`}
+                          onClick={() => toggleTransfer(i)}
+                          title={tx.isTransfer ? t("transactions.transfer") : "Mark as transfer"}
+                        >
+                          <ArrowLeftRight className="h-3 w-3 mr-1" />
+                          {tx.isTransfer ? t("transactions.transfer") : "—"}
+                        </button>
                       </td>
                     </tr>
-                  ))}
+                  )
+                  })}
                 </tbody>
               </table>
             </div>

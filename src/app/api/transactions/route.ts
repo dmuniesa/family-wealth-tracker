@@ -22,9 +22,10 @@ export async function GET(request: NextRequest) {
       accountId: searchParams.get('accountId') ? parseInt(searchParams.get('accountId')!) : undefined,
       month: searchParams.get('month') || undefined,
       categoryId: searchParams.get('categoryId') ? parseInt(searchParams.get('categoryId')!) : undefined,
-      isTransfer: searchParams.get('isTransfer') !== null
+      isTransfer: searchParams.get('isTransfer') !== null && searchParams.get('isTransfer') !== ''
         ? searchParams.get('isTransfer') === 'true'
         : undefined,
+      search: searchParams.get('search') || undefined,
       page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
       limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50,
     };

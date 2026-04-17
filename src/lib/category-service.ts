@@ -11,25 +11,18 @@ interface DefaultCategory {
 
 const DEFAULT_CATEGORIES: DefaultCategory[] = [
   {
-    name: 'Groceries',
+    name: 'Supermarket',
     type: 'expense',
     icon: 'ShoppingCart',
     color: '#10B981',
     ai_description: 'Supermarket purchases, food stores, grocery deliveries, Mercadona, Consum, Dia, Lidl, Aldi, Carrefour market, Alcampo food section',
   },
   {
-    name: 'Restaurantes',
+    name: 'Restaurants',
     type: 'expense',
     icon: 'UtensilsCrossed',
     color: '#F59E0B',
-    ai_description: 'Restaurants, cafes, bars, bakeries, fast food, takeout, Horno paco sanz, pizza, tapas, kebab, barbacoana, telepizza, bon area, tapas y copas, santa eulalia, la cafetera',
-  },
-  {
-    name: 'Dining Out',
-    type: 'expense',
-    icon: 'Coffee',
-    color: '#D97706',
-    ai_description: 'Coffee shops, breakfast out, snacks, casual meals, bizum for meals with friends, cena',
+    ai_description: 'Restaurants, cafes, bars, bakeries, fast food, takeout, Horno paco sanz, pizza, tapas, kebab, barbacoana, telepizza, bon area, tapas y copas, santa eulalia, la cafetera, coffee shops, breakfast out, snacks, casual meals, bizum for meals with friends, cena',
   },
   {
     name: 'Transport',
@@ -60,18 +53,25 @@ const DEFAULT_CATEGORIES: DefaultCategory[] = [
     ai_description: 'Clothing, shoes, electronics, Amazon, department stores, Alcampo non-food, El Corte Ingles, general retail, teraxon, aliexpress, alipay',
   },
   {
-    name: 'Electrónica',
+    name: 'Electronics',
     type: 'expense',
     icon: 'Monitor',
     color: '#6366F1',
     ai_description: 'Electronics stores, technology purchases, computer equipment, mobile phones, gadgets, ozone game, aliexpress electronics, paypal alipay tech',
   },
   {
-    name: 'Material Deportivo',
+    name: 'Sports Equipment',
     type: 'expense',
     icon: 'Dumbbell',
     color: '#14B8A6',
     ai_description: 'Sports equipment, sportswear, Decathlon, sporting goods, gym gear, outdoor equipment',
+  },
+  {
+    name: 'Gifts',
+    type: 'expense',
+    icon: 'Gift',
+    color: '#F472B6',
+    ai_description: 'Gifts for family and friends, birthday presents, Christmas gifts, wedding gifts, celebracion, regalo, communion',
   },
   {
     name: 'Entertainment',

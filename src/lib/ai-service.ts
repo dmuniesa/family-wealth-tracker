@@ -185,6 +185,8 @@ export class AIService {
     const baseUrl = settings.ai_base_url || 'https://api.openai.com/v1';
     const model = settings.ai_model || 'gpt-4o-mini';
 
+    console.log(`[AI] Categorizing ${transactions.length} transactions with model ${model} at ${baseUrl}`);
+
     // Filter out non_computable categories
     const eligibleCategories = categories.filter(c => c.type !== 'non_computable');
 
@@ -213,6 +215,8 @@ Rules:
       })),
     });
 
+    console.log(`[AI] Request payload (${userMessage.length} chars):`, userMessage);
+
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -232,6 +236,7 @@ Rules:
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[AI] API error ${response.status}: ${errorText}`);
       throw new Error(`AI API error: ${response.status} - ${errorText}`);
     }
 
@@ -239,10 +244,14 @@ Rules:
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
+      console.error('[AI] No content in response:', JSON.stringify(data).substring(0, 500));
       throw new Error('No response from AI');
     }
 
+    console.log(`[AI] Response (${content.length} chars):`, content);
+
     const parsed = JSON.parse(content);
+    console.log(`[AI] Categorized ${parsed.categorizations?.length || 0} transactions`);
     return parsed.categorizations || [];
   }
 }
