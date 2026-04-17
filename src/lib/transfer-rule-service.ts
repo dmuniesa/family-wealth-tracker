@@ -12,6 +12,7 @@ const DEFAULT_TRANSFER_RULES: TransferSeedRule[] = [
   { rule_type: 'contains_text', pattern: 'Move to save', field: 'detail' },
   { rule_type: 'sender_is', pattern: 'DAVID JOSE MUNIESA GALLARDO', field: 'detail' },
   { rule_type: 'description_matches', pattern: 'Transferencia realizada.*(mercadona|compra|pan|café|coffee|paella|parking)', field: 'description' },
+  { rule_type: 'contains_text', pattern: 'B100', field: 'detail' },
 ];
 
 export class TransferRuleService {
