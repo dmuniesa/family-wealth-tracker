@@ -64,7 +64,7 @@ Transfers between own accounts are identified via configurable rules and exclude
 | `contains_text` | OFF TO SAVE | detail | Savings account transfers |
 | `contains_text` | Move to save | detail | Savings account transfers |
 | `sender_is` | DAVID JOSE MUNIESA GALLARDO | detail | Own-account incoming transfers |
-| `description_matches` | Transferencia realizada.*(mercadona\|compra\|pan\|café) | description | Reimbursements to secondary card account |
+| `description_matches` | Transferencia realizada.*(mercadona\|compra\|pan\|café) | any | Reimbursements to secondary card account |
 | `contains_text` | B100 | detail | B100-prefixed detail marks it as transfer |
 
 Rules are evaluated during import and can be toggled on/off. New rules can be added via the API (`/api/transactions/transfer-rules`).

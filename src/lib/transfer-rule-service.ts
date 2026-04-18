@@ -11,7 +11,7 @@ const DEFAULT_TRANSFER_RULES: TransferSeedRule[] = [
   { rule_type: 'contains_text', pattern: 'OFF TO SAVE', field: 'detail' },
   { rule_type: 'contains_text', pattern: 'Move to save', field: 'detail' },
   { rule_type: 'sender_is', pattern: 'DAVID JOSE MUNIESA GALLARDO', field: 'detail' },
-  { rule_type: 'description_matches', pattern: 'Transferencia realizada.*(mercadona|compra|pan|café|coffee|paella|parking)', field: 'description' },
+  { rule_type: 'description_matches', pattern: 'Transferencia realizada.*(mercadona|compra|pan|café|coffee|paella|parking)', field: 'any' },
   { rule_type: 'contains_text', pattern: 'B100', field: 'detail' },
 ];
 
@@ -68,10 +68,19 @@ export class TransferRuleService {
 
   static async seedDefaultRules(familyId: number): Promise<void> {
     const existing = await this.getRulesByFamily(familyId);
-    if (existing.length > 0) return;
 
-    for (const rule of DEFAULT_TRANSFER_RULES) {
-      await this.createRule(familyId, rule);
+    for (const seedRule of DEFAULT_TRANSFER_RULES) {
+      const match = existing.find(
+        r => r.rule_type === seedRule.rule_type && r.pattern === seedRule.pattern
+      );
+      if (match) {
+        // Update field if it changed in seed
+        if (match.field !== seedRule.field) {
+          await this.updateRule(match.id, { field: seedRule.field });
+        }
+      } else {
+        await this.createRule(familyId, seedRule);
+      }
     }
   }
 
