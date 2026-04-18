@@ -6,6 +6,7 @@ import { Sidebar } from "./sidebar"
 import { MobileHeader } from "./mobile-header"
 import { useLocale, useTranslations } from 'next-intl'
 import type { User } from "@/types"
+import { AiChatProvider, AiChatBubble, AiChatPanel } from "@/components/ai-chat"
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -75,30 +76,34 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <MobileHeader 
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-        pageTitle={getPageTitle()}
-      />
-      <Sidebar 
-        user={user} 
-        onLogout={handleLogout}
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-      <main 
-        className="flex-1 overflow-auto lg:ml-0"
-        onClick={() => {
-          if (isMobileMenuOpen) {
-            setIsMobileMenuOpen(false)
-          }
-        }}
-      >
-        <div className="p-4 pt-20 sm:p-6 lg:p-8 lg:pt-8">
-          {children}
-        </div>
-      </main>
-    </div>
+    <AiChatProvider>
+      <div className="flex h-screen bg-gray-50">
+        <MobileHeader
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+          pageTitle={getPageTitle()}
+        />
+        <Sidebar
+          user={user}
+          onLogout={handleLogout}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
+        <main
+          className="flex-1 overflow-auto lg:ml-0"
+          onClick={() => {
+            if (isMobileMenuOpen) {
+              setIsMobileMenuOpen(false)
+            }
+          }}
+        >
+          <div className="p-4 pt-20 sm:p-6 lg:p-8 lg:pt-8">
+            {children}
+          </div>
+        </main>
+      </div>
+      <AiChatBubble />
+      <AiChatPanel />
+    </AiChatProvider>
   )
 }

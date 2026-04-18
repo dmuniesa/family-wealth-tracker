@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }));
 
     // Call AI categorization
-    const results = await AIService.categorizeTransactions(familyId, fakeTransactions, categories);
+    const { categorizations: results, logs } = await AIService.categorizeTransactions(familyId, fakeTransactions, categories);
 
     // Map results back using index
     const categorizations = results.map(r => ({
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       confidence: r.confidence,
     }));
 
-    return NextResponse.json({ categorizations });
+    return NextResponse.json({ categorizations, aiLogs: logs });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
     console.error('Error categorizing preview:', message);

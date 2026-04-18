@@ -125,6 +125,7 @@ export interface FamilySettings {
   ai_base_url: string;
   ai_model: string;
   ai_last_test?: string | null;
+  ai_chat_enabled?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -170,4 +171,46 @@ export interface MonthlySummary {
   transfersTotal: number;
   nonComputableCount: number;
   nonComputableTotal: number;
+}
+
+// AI Chat types
+export type ChatMessageRole = 'user' | 'ai-operation' | 'ai-response' | 'system';
+
+export interface ChatMessage {
+  id: string;
+  role: ChatMessageRole;
+  content: string;
+  timestamp: string;
+}
+
+export interface AiOperationEvent {
+  type: 'info' | 'success' | 'error';
+  message: string;
+  timestamp: string;
+}
+
+// DB-persisted chat types
+export type ConversationType = 'auto' | 'manual';
+export type ConversationStatus = 'active' | 'closed';
+
+export interface ChatConversation {
+  id: number;
+  family_id: number;
+  user_id: number;
+  title: string;
+  type: ConversationType;
+  status: ConversationStatus;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  user_name?: string;
+  message_count?: number;
+}
+
+export interface ChatMessageDB {
+  id: number;
+  conversation_id: number;
+  role: ChatMessageRole;
+  content: string;
+  timestamp: string;
 }

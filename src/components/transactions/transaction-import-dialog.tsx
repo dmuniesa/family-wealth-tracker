@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Upload, CheckCircle, AlertCircle, ArrowRight, Ban, ArrowLeftRight, Sparkles, Loader2, Search, X } from "lucide-react"
 import { useTranslations } from "next-intl"
+import { aiChatEvents } from "@/components/ai-chat"
 import type { Account, TransactionCategory } from "@/types"
 
 interface ImportDialogProps {
@@ -134,6 +135,15 @@ export function TransactionImportDialog({ open, onOpenChange, accounts, onSucces
       }
 
       // Apply AI results
+      if (data.aiLogs) {
+        for (const log of data.aiLogs) {
+          aiChatEvents.emit({
+            type: log.type as 'info' | 'success' | 'error',
+            message: log.message,
+            timestamp: new Date().toISOString(),
+          })
+        }
+      }
       setPreviewTransactions(prev => prev.map((tx, i) => {
         const match = data.categorizations.find((c: { index: number; categoryId: number }) => c.index === i)
         if (match) {

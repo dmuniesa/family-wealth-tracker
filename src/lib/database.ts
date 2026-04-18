@@ -159,6 +159,8 @@ async function initializeDatabase(db: Database) {
   await migrateDatabaseForSystemLogs(db);
   await migrateDatabaseForTransactions(db);
   await migrateDatabaseForPasswordReset(db);
+  await migrateFamilySettingsForChat(db);
+  await migrateDatabaseForChatTables(db);
 }
 
 async function migrateDatabaseForPasswordReset(db: Database) {
@@ -470,5 +472,72 @@ async function migrateDatabaseForTransactions(db: Database) {
   } catch (error) {
     console.error('Error creating transactions tables:', error);
     // Don't throw - allow app to continue even if tables already exist
+  }
+}
+
+async function migrateFamilySettingsForChat(db: Database) {
+  try {
+    const tableInfo = await db.all(`
+      PRAGMA table_info(family_settings)
+    `) as any[];
+
+    const hasChatEnabled = tableInfo.some(column => column.name === 'ai_chat_enabled');
+
+    if (!hasChatEnabled) {
+      console.log('Adding ai_chat_enabled column to family_settings table...');
+      await db.run('BEGIN TRANSACTION');
+      await db.run(`
+        ALTER TABLE family_settings ADD COLUMN ai_chat_enabled BOOLEAN DEFAULT 0
+      `);
+      await db.run('COMMIT');
+      console.log('Successfully migrated family_settings with ai_chat_enabled column');
+    }
+  } catch (error) {
+    await db.run('ROLLBACK');
+    console.error('Error migrating family_settings for chat:', error);
+  }
+}
+
+async function migrateDatabaseForChatTables(db: Database) {
+  try {
+    // Create chat_conversations table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS chat_conversations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        family_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        title TEXT NOT NULL DEFAULT '',
+        type TEXT CHECK(type IN ('auto', 'manual')) NOT NULL DEFAULT 'manual',
+        status TEXT CHECK(status IN ('active', 'closed')) NOT NULL DEFAULT 'active',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (family_id) REFERENCES users(family_id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+
+    // Create chat_messages table
+    await db.run(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        conversation_id INTEGER NOT NULL,
+        role TEXT CHECK(role IN ('user', 'ai-operation', 'ai-response', 'system')) NOT NULL,
+        content TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create indexes
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_family_id ON chat_conversations(family_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_id ON chat_conversations(user_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_type ON chat_conversations(type)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_status ON chat_conversations(status)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_id ON chat_messages(conversation_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp)`);
+
+    console.log('Successfully created chat tables and indexes');
+  } catch (error) {
+    console.error('Error creating chat tables:', error);
   }
 }

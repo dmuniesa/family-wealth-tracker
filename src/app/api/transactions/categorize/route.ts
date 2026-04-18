@@ -39,14 +39,16 @@ export async function POST(request: NextRequest) {
     let categorized = 0;
     let failed = 0;
     const batchSize = 50;
+    const allLogs: Array<{ type: string; message: string }> = [];
 
     for (let i = 0; i < transactions.length; i += batchSize) {
       const batch = transactions.slice(i, i + batchSize);
       try {
-        const results = await AIService.categorizeTransactions(familyId, batch, categories);
+        const { categorizations, logs } = await AIService.categorizeTransactions(familyId, batch, categories);
+        allLogs.push(...logs);
 
         // Apply results
-        for (const result of results) {
+        for (const result of categorizations) {
           const category = categories.find(c => c.id === result.categoryId);
           if (category) {
             await TransactionService.updateTransaction(result.transactionId, {
@@ -58,10 +60,11 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error('AI categorization batch failed:', error);
         failed += batch.length;
+        allLogs.push({ type: 'error', message: `Batch failed: ${(error as Error).message}` });
       }
     }
 
-    return NextResponse.json({ categorized, failed });
+    return NextResponse.json({ categorized, failed, aiLogs: allLogs });
   } catch (error) {
     console.error('Error categorizing transactions:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

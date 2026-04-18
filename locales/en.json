@@ -6,6 +6,7 @@
     "transactions": "Transactions",
     "backups": "Backups",
     "admin": "Admin",
+    "aiChat": "AI Conversations",
     "members": "Members",
     "settings": "Settings",
     "categories": "Categories",
@@ -477,7 +478,36 @@
     "lastTest": "Last test",
     "save": "Save Settings",
     "saving": "Saving...",
-    "saved": "Settings saved"
+    "saved": "Settings saved",
+    "chatEnabled": "Enable AI Chat",
+    "chatEnabledDescription": "Show a floating chat bubble to interact with AI and see operation logs"
+  },
+  "aiChat": {
+    "title": "AI Assistant",
+    "subtitle": "Ask about your finances",
+    "placeholder": "Ask about your finances...",
+    "noMessages": "No messages yet. Ask me anything!",
+    "history": "History",
+    "newConversation": "New conversation",
+    "noConversations": "No conversations yet",
+    "autoConversation": "AI Operation",
+    "manualConversation": "Chat"
+  },
+  "chatPage": {
+    "title": "AI Conversations",
+    "subtitle": "Review chat history and AI operation logs",
+    "filterAll": "All",
+    "filterManual": "Chats",
+    "filterAuto": "Operations",
+    "noConversations": "No conversations found",
+    "selectConversation": "Select a conversation to view messages",
+    "close": "Close conversation",
+    "delete": "Delete",
+    "deleteConfirm": "Are you sure you want to delete this conversation?",
+    "back": "Back",
+    "autoConversation": "AI Operation",
+    "manualConversation": "Chat",
+    "untitled": "Untitled conversation"
   },
   "transactionCategories": {
     "title": "Categories",

@@ -14,6 +14,7 @@ import {
 import { TransactionImportDialog } from "@/components/transactions/transaction-import-dialog"
 import { TransactionEditDialog } from "@/components/transactions/transaction-edit-dialog"
 import { useTranslations } from "next-intl"
+import { aiChatEvents } from "@/components/ai-chat"
 import type { Account, Transaction, TransactionCategory } from "@/types"
 
 export default function TransactionsPage() {
@@ -203,6 +204,17 @@ export default function TransactionsPage() {
       })
 
       if (res.ok) {
+        const data = await res.json()
+        // Emit AI operation events to chat widget
+        if (data.aiLogs) {
+          for (const log of data.aiLogs) {
+            aiChatEvents.emit({
+              type: log.type as 'info' | 'success' | 'error',
+              message: log.message,
+              timestamp: new Date().toISOString(),
+            })
+          }
+        }
         fetchData()
       }
     } catch (err) {

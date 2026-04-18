@@ -15,7 +15,8 @@ import {
   Users,
   Shield,
   Mail,
-  Tag
+  Tag,
+  MessageSquare
 } from "lucide-react"
 import { useTranslations, useLocale } from 'next-intl'
 import type { User } from "@/types"
@@ -69,6 +70,11 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
         name: t('navigation.backups'),
         href: `/${locale}/backups`,
         icon: Shield,
+      },
+      {
+        name: t('navigation.aiChat'),
+        href: `/${locale}/chat`,
+        icon: MessageSquare,
       },
       {
         name: t('navigation.admin'),

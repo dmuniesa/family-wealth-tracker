@@ -50,6 +50,8 @@ export default function SettingsPage() {
   const [isTestingAi, setIsTestingAi] = useState(false)
   const [isSavingAi, setIsSavingAi] = useState(false)
   const [aiSaved, setAiSaved] = useState(false)
+  const [aiChatEnabled, setAiChatEnabled] = useState(false)
+  const [isSavingAiChat, setIsSavingAiChat] = useState(false)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -76,6 +78,7 @@ export default function SettingsPage() {
         const data = await res.json()
         setAiBaseUrl(data.baseUrl || 'https://api.openai.com/v1')
         setAiModel(data.model || 'gpt-4o-mini')
+        setAiChatEnabled(!!data.aiChatEnabled)
         if (data.lastTest) {
           try {
             setAiTestResult(JSON.parse(data.lastTest))
@@ -123,6 +126,22 @@ export default function SettingsPage() {
       setAiTestResult({ success: false, message: 'Connection failed' })
     } finally {
       setIsTestingAi(false)
+    }
+  }
+
+  const handleAiChatToggle = async (enabled: boolean) => {
+    setIsSavingAiChat(true)
+    try {
+      const res = await fetch('/api/settings/ai', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiChatEnabled: enabled }),
+      })
+      if (res.ok) {
+        setAiChatEnabled(enabled)
+      }
+    } catch {} finally {
+      setIsSavingAiChat(false)
     }
   }
 
@@ -700,6 +719,21 @@ export default function SettingsPage() {
                     {t('aiSettings.saved')}
                   </div>
                 )}
+
+                <div className="border-t pt-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="ai-chat-enabled"
+                      checked={aiChatEnabled}
+                      onCheckedChange={handleAiChatToggle}
+                      disabled={isSavingAiChat}
+                    />
+                    <Label htmlFor="ai-chat-enabled" className="flex-1">
+                      <span className="text-sm font-medium">{t('aiSettings.chatEnabled')}</span>
+                      <p className="text-xs text-gray-500">{t('aiSettings.chatEnabledDescription')}</p>
+                    </Label>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

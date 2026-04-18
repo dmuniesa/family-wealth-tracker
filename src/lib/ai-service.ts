@@ -14,6 +14,11 @@ export interface CategorizationResult {
   confidence: number;
 }
 
+export interface CategorizationWithLogs {
+  categorizations: CategorizationResult[];
+  logs: Array<{ type: 'info' | 'success' | 'error'; message: string }>;
+}
+
 export interface AITestResult {
   success: boolean;
   message: string;
@@ -25,6 +30,7 @@ export class AIService {
     baseUrl: string;
     model: string;
     lastTest: string | null;
+    aiChatEnabled: boolean;
   }> {
     const db = await getDatabase();
     const settings = await db.get(
@@ -38,6 +44,7 @@ export class AIService {
         baseUrl: 'https://api.openai.com/v1',
         model: 'gpt-4o-mini',
         lastTest: null,
+        aiChatEnabled: false,
       };
     }
 
@@ -52,6 +59,7 @@ export class AIService {
       baseUrl: settings.ai_base_url || 'https://api.openai.com/v1',
       model: settings.ai_model || 'gpt-4o-mini',
       lastTest: settings.ai_last_test,
+      aiChatEnabled: !!settings.ai_chat_enabled,
     };
   }
 
@@ -59,6 +67,7 @@ export class AIService {
     apiKey?: string;
     baseUrl?: string;
     model?: string;
+    aiChatEnabled?: boolean;
   }): Promise<void> {
     const db = await getDatabase();
 
@@ -77,6 +86,7 @@ export class AIService {
       }
       if (data.baseUrl !== undefined) { updates.push('ai_base_url = ?'); params.push(data.baseUrl); }
       if (data.model !== undefined) { updates.push('ai_model = ?'); params.push(data.model); }
+      if (data.aiChatEnabled !== undefined) { updates.push('ai_chat_enabled = ?'); params.push(data.aiChatEnabled ? 1 : 0); }
 
       if (updates.length > 0) {
         updates.push("updated_at = datetime('now')");
@@ -170,7 +180,8 @@ export class AIService {
     familyId: number,
     transactions: Transaction[],
     categories: TransactionCategory[]
-  ): Promise<CategorizationResult[]> {
+  ): Promise<CategorizationWithLogs> {
+    const logs: Array<{ type: 'info' | 'success' | 'error'; message: string }> = [];
     const db = await getDatabase();
     const settings = await db.get(
       'SELECT * FROM family_settings WHERE family_id = ?',
@@ -185,6 +196,7 @@ export class AIService {
     const baseUrl = settings.ai_base_url || 'https://api.openai.com/v1';
     const model = settings.ai_model || 'gpt-4o-mini';
 
+    logs.push({ type: 'info', message: `Categorizing ${transactions.length} transactions with model ${model}` });
     console.log(`[AI] Categorizing ${transactions.length} transactions with model ${model} at ${baseUrl}`);
 
     // Filter out non_computable categories
@@ -236,6 +248,7 @@ Rules:
 
     if (!response.ok) {
       const errorText = await response.text();
+      logs.push({ type: 'error', message: `API error ${response.status}: ${errorText.substring(0, 100)}` });
       console.error(`[AI] API error ${response.status}: ${errorText}`);
       throw new Error(`AI API error: ${response.status} - ${errorText}`);
     }
@@ -251,7 +264,106 @@ Rules:
     console.log(`[AI] Response (${content.length} chars):`, content);
 
     const parsed = JSON.parse(content);
-    console.log(`[AI] Categorized ${parsed.categorizations?.length || 0} transactions`);
-    return parsed.categorizations || [];
+    const count = parsed.categorizations?.length || 0;
+    logs.push({ type: 'success', message: `Categorized ${count} transactions` });
+    console.log(`[AI] Categorized ${count} transactions`);
+    return { categorizations: parsed.categorizations || [], logs };
+  }
+
+  /**
+   * Send a chat message to the AI with financial context
+   */
+  static async chat(familyId: number, message: string, context?: string): Promise<string> {
+    const db = await getDatabase();
+    const settings = await db.get(
+      'SELECT * FROM family_settings WHERE family_id = ?',
+      [familyId]
+    ) as any;
+
+    if (!settings?.ai_api_key_encrypted) {
+      throw new Error('No API key configured');
+    }
+
+    const apiKey = decryptIBAN(settings.ai_api_key_encrypted);
+    const baseUrl = settings.ai_base_url || 'https://api.openai.com/v1';
+    const model = settings.ai_model || 'gpt-4o-mini';
+
+    // Build financial context
+    let financialContext = '';
+
+    // Get account balances summary
+    const accounts = await db.all(
+      `SELECT a.name, a.category, a.currency,
+        (SELECT b.amount FROM balances b WHERE b.account_id = a.id ORDER BY b.date DESC LIMIT 1) as balance
+       FROM accounts a WHERE a.family_id = ?`,
+      [familyId]
+    ) as any[];
+
+    if (accounts.length > 0) {
+      financialContext += '\n\nAccount Balances:\n';
+      for (const acc of accounts) {
+        financialContext += `- ${acc.name} (${acc.category}): ${acc.balance != null ? acc.balance.toFixed(2) : 'N/A'} ${acc.currency}\n`;
+      }
+    }
+
+    // Get recent spending by category (current month)
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const recentSpending = await db.all(
+      `SELECT tc.name, tc.type, SUM(ABS(t.amount)) as total, COUNT(*) as count
+       FROM transactions t
+       JOIN transaction_categories tc ON t.category_id = tc.id
+       WHERE t.family_id = ? AND t.date LIKE ? || '%' AND t.is_transfer = 0
+       GROUP BY tc.id ORDER BY total DESC LIMIT 10`,
+      [familyId, currentMonth]
+    ) as any[];
+
+    if (recentSpending.length > 0) {
+      financialContext += `\nSpending by category (${currentMonth}):\n`;
+      for (const row of recentSpending) {
+        financialContext += `- ${row.name} (${row.type}): ${row.total.toFixed(2)} EUR (${row.count} transactions)\n`;
+      }
+    }
+
+    // Get total net for current month
+    const monthSummary = await db.get(
+      `SELECT
+        SUM(CASE WHEN amount > 0 AND is_transfer = 0 THEN amount ELSE 0 END) as income,
+        SUM(CASE WHEN amount < 0 AND is_transfer = 0 THEN ABS(amount) ELSE 0 END) as expenses
+       FROM transactions WHERE family_id = ? AND date LIKE ? || '%'`,
+      [familyId, currentMonth]
+    ) as any;
+
+    if (monthSummary) {
+      financialContext += `\nMonth Summary (${currentMonth}):\n`;
+      financialContext += `- Income: ${(monthSummary.income || 0).toFixed(2)} EUR\n`;
+      financialContext += `- Expenses: ${(monthSummary.expenses || 0).toFixed(2)} EUR\n`;
+      financialContext += `- Net: ${((monthSummary.income || 0) - (monthSummary.expenses || 0)).toFixed(2)} EUR\n`;
+    }
+
+    const systemPrompt = `You are a helpful financial assistant for a family wealth tracker application. You have access to the family's financial data and can answer questions about their finances. You respond in the same language the user writes in (Spanish or English). Be concise and helpful.${financialContext}${context ? '\n\nAdditional context:\n' + context : ''}`;
+
+    const chatResponse = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message },
+        ],
+        temperature: 0.7,
+      }),
+    });
+
+    if (!chatResponse.ok) {
+      const errorText = await chatResponse.text();
+      throw new Error(`AI API error: ${chatResponse.status} - ${errorText.substring(0, 200)}`);
+    }
+
+    const data = await chatResponse.json() as any;
+    return data.choices?.[0]?.message?.content || 'No response from AI';
   }
 }

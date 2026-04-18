@@ -29,6 +29,7 @@ export async function PUT(request: NextRequest) {
       apiKey: body.apiKey,
       baseUrl: body.baseUrl,
       model: body.model,
+      aiChatEnabled: body.aiChatEnabled,
     });
 
     return NextResponse.json({ success: true });

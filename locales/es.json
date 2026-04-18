@@ -6,6 +6,7 @@
     "transactions": "Movimientos",
     "backups": "Respaldos",
     "admin": "Admin",
+    "aiChat": "Conversaciones IA",
     "members": "Miembros",
     "settings": "Configuración",
     "categories": "Categorías",
@@ -478,7 +479,36 @@
     "lastTest": "Última prueba",
     "save": "Guardar Configuración",
     "saving": "Guardando...",
-    "saved": "Configuración guardada"
+    "saved": "Configuración guardada",
+    "chatEnabled": "Activar Chat IA",
+    "chatEnabledDescription": "Mostrar burbuja de chat flotante para interactuar con la IA y ver registros de operaciones"
+  },
+  "aiChat": {
+    "title": "Asistente IA",
+    "subtitle": "Pregunta sobre tus finanzas",
+    "placeholder": "Pregunta sobre tus finanzas...",
+    "noMessages": "Sin mensajes aún. ¡Pregúntame lo que quieras!",
+    "history": "Historial",
+    "newConversation": "Nueva conversación",
+    "noConversations": "Sin conversaciones aún",
+    "autoConversation": "Operación IA",
+    "manualConversation": "Chat"
+  },
+  "chatPage": {
+    "title": "Conversaciones IA",
+    "subtitle": "Revisa el historial de chat y registros de operaciones IA",
+    "filterAll": "Todas",
+    "filterManual": "Chats",
+    "filterAuto": "Operaciones",
+    "noConversations": "No se encontraron conversaciones",
+    "selectConversation": "Selecciona una conversación para ver los mensajes",
+    "close": "Cerrar conversación",
+    "delete": "Eliminar",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar esta conversación?",
+    "back": "Volver",
+    "autoConversation": "Operación IA",
+    "manualConversation": "Chat",
+    "untitled": "Conversación sin título"
   },
   "transactionCategories": {
     "title": "Categorías",
