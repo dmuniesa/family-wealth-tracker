@@ -1,14 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 import { useTranslations, useLocale } from "next-intl"
 import { CategoryDrilldown } from "@/components/analytics/category-drilldown"
-import type { MonthlySummary } from "@/types"
+import { TransactionList } from "@/components/analytics/transaction-list"
+import type { MonthlySummary, Transaction, TransactionCategory } from "@/types"
 
 interface ExpensesTabProps {
   summary: MonthlySummary | null
+  categories: TransactionCategory[]
+  month: string
 }
 
 interface PieDataItem {
@@ -18,10 +21,11 @@ interface PieDataItem {
   categoryId: number
 }
 
-export function ExpensesTab({ summary }: ExpensesTabProps) {
+export function ExpensesTab({ summary, categories, month }: ExpensesTabProps) {
   const t = useTranslations("analytics")
   const locale = useLocale()
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
+  const [categoryTransactions, setCategoryTransactions] = useState<Transaction[]>([])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat(locale === "es" ? "es-ES" : "en-US", {
@@ -29,6 +33,28 @@ export function ExpensesTab({ summary }: ExpensesTabProps) {
       currency: "EUR",
     }).format(amount)
   }
+
+  const fetchCategoryTransactions = useCallback(async (categoryId: number) => {
+    try {
+      const res = await fetch(
+        `/api/transactions?categoryId=${categoryId}&month=${month}&limit=100`
+      )
+      if (res.ok) {
+        const data = await res.json()
+        setCategoryTransactions(data.transactions || [])
+      }
+    } catch (err) {
+      console.error("Failed to fetch category transactions:", err)
+    }
+  }, [month])
+
+  useEffect(() => {
+    if (selectedCategoryId) {
+      fetchCategoryTransactions(selectedCategoryId)
+    } else {
+      setCategoryTransactions([])
+    }
+  }, [selectedCategoryId, fetchCategoryTransactions])
 
   if (!summary) return null
 
@@ -195,9 +221,21 @@ export function ExpensesTab({ summary }: ExpensesTabProps) {
         </Card>
       </div>
 
-      {/* Drilldown */}
+      {/* Drilldown + transaction list */}
       {selectedCategory && (
-        <CategoryDrilldown category={selectedCategory} totalExpenses={totalExpenses} />
+        <>
+          <CategoryDrilldown category={selectedCategory} totalExpenses={totalExpenses} />
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              {selectedCategory.categoryName}
+            </h3>
+            <TransactionList
+              transactions={categoryTransactions}
+              categories={categories}
+              onRefresh={() => fetchCategoryTransactions(selectedCategoryId!)}
+            />
+          </div>
+        </>
       )}
     </div>
   )

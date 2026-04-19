@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   LineChart,
@@ -13,16 +13,20 @@ import {
   Legend,
 } from "recharts"
 import { useTranslations, useLocale } from "next-intl"
-import type { CategoryEvolution } from "@/types"
+import { TransactionList } from "@/components/analytics/transaction-list"
+import type { CategoryEvolution, Transaction, TransactionCategory } from "@/types"
 
 interface CategoryEvolutionTabProps {
   data: CategoryEvolution[]
+  categories: TransactionCategory[]
+  month: string
 }
 
-export function CategoryEvolutionTab({ data }: CategoryEvolutionTabProps) {
+export function CategoryEvolutionTab({ data, categories, month }: CategoryEvolutionTabProps) {
   const t = useTranslations("analytics")
   const locale = useLocale()
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
+  const [categoryTransactions, setCategoryTransactions] = useState<Transaction[]>([])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat(locale === "es" ? "es-ES" : "en-US", {
@@ -32,14 +36,36 @@ export function CategoryEvolutionTab({ data }: CategoryEvolutionTabProps) {
     }).format(amount)
   }
 
-  const formatMonth = (month: string) => {
-    const [y, m] = month.split("-").map(Number)
+  const formatMonth = (monthStr: string) => {
+    const [y, m] = monthStr.split("-").map(Number)
     const d = new Date(y, m - 1, 1)
     return d.toLocaleDateString(locale === "es" ? "es-ES" : "en-US", {
       month: "short",
       year: "2-digit",
     })
   }
+
+  const fetchCategoryTransactions = useCallback(async (categoryId: number) => {
+    try {
+      const res = await fetch(
+        `/api/transactions?categoryId=${categoryId}&month=${month}&limit=100`
+      )
+      if (res.ok) {
+        const data = await res.json()
+        setCategoryTransactions(data.transactions || [])
+      }
+    } catch (err) {
+      console.error("Failed to fetch category transactions:", err)
+    }
+  }, [month])
+
+  useEffect(() => {
+    if (selectedCategoryId) {
+      fetchCategoryTransactions(selectedCategoryId)
+    } else {
+      setCategoryTransactions([])
+    }
+  }, [selectedCategoryId, fetchCategoryTransactions])
 
   // Filter to expense categories only (type === 'expense' or 'both')
   const expenseCategories = useMemo(
@@ -75,10 +101,10 @@ export function CategoryEvolutionTab({ data }: CategoryEvolutionTabProps) {
       ? expenseCategories.filter(c => c.categoryId === selectedCategoryId)
       : sortedCategories.slice(0, 5)
 
-    return allMonths.map(month => {
-      const point: Record<string, string | number> = { month: formatMonth(month) }
+    return allMonths.map(m => {
+      const point: Record<string, string | number> = { month: formatMonth(m) }
       for (const cat of categoriesToShow) {
-        const entry = cat.evolution.find(e => e.month === month)
+        const entry = cat.evolution.find(e => e.month === m)
         point[cat.categoryName] = entry ? entry.amount : 0
       }
       return point
@@ -211,6 +237,20 @@ export function CategoryEvolutionTab({ data }: CategoryEvolutionTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Transaction list for selected category */}
+      {selectedCategoryId && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            {categoriesToShow[0]?.categoryName}
+          </h3>
+          <TransactionList
+            transactions={categoryTransactions}
+            categories={categories}
+            onRefresh={() => fetchCategoryTransactions(selectedCategoryId)}
+          />
+        </div>
+      )}
     </div>
   )
 }

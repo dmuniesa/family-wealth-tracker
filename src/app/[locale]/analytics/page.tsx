@@ -10,7 +10,7 @@ import { OverviewTab } from "@/components/analytics/overview-tab"
 import { ExpensesTab } from "@/components/analytics/expenses-tab"
 import { TrendsTab } from "@/components/analytics/trends-tab"
 import { CategoryEvolutionTab } from "@/components/analytics/category-evolution-tab"
-import type { MonthlySummary, CategoryEvolution } from "@/types"
+import type { MonthlySummary, CategoryEvolution, TransactionCategory } from "@/types"
 
 export default function AnalyticsPage() {
   const t = useTranslations("analytics")
@@ -21,20 +21,23 @@ export default function AnalyticsPage() {
   const [summary, setSummary] = useState<MonthlySummary | null>(null)
   const [trends, setTrends] = useState<MonthlySummary[]>([])
   const [categoryEvolution, setCategoryEvolution] = useState<CategoryEvolution[]>([])
+  const [categories, setCategories] = useState<TransactionCategory[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const [summaryRes, trendsRes, evolutionRes] = await Promise.all([
+        const [summaryRes, trendsRes, evolutionRes, catRes] = await Promise.all([
           fetch(`/api/transactions/analytics/monthly?month=${month}`),
           fetch(`/api/transactions/analytics/trends?months=12`),
           fetch(`/api/analytics/category-evolution?months=12`),
+          fetch("/api/transactions/categories"),
         ])
         if (summaryRes.ok) setSummary(await summaryRes.json())
         if (trendsRes.ok) setTrends(await trendsRes.json())
         if (evolutionRes.ok) setCategoryEvolution(await evolutionRes.json())
+        if (catRes.ok) setCategories(await catRes.json())
       } catch (err) {
         console.error("Failed to fetch analytics:", err)
       } finally {
@@ -83,7 +86,7 @@ export default function AnalyticsPage() {
             </TabsContent>
 
             <TabsContent value="expenses">
-              <ExpensesTab summary={summary} />
+              <ExpensesTab summary={summary} categories={categories} month={month} />
             </TabsContent>
 
             <TabsContent value="trends">
@@ -91,7 +94,7 @@ export default function AnalyticsPage() {
             </TabsContent>
 
             <TabsContent value="categories">
-              <CategoryEvolutionTab data={categoryEvolution} />
+              <CategoryEvolutionTab data={categoryEvolution} categories={categories} month={month} />
             </TabsContent>
           </Tabs>
         </div>
