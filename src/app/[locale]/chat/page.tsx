@@ -5,8 +5,9 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, Trash2, XCircle, Eye, ArrowLeft, Sparkles, User, AlertTriangle } from "lucide-react"
+import { MessageSquare, Trash2, XCircle, Eye, ArrowLeft, Sparkles, User, AlertTriangle, Zap } from "lucide-react"
 import { useTranslations } from "next-intl"
+import { renderInlineMarkdown } from "@/components/ai-chat/renderMarkdown"
 import type { ChatConversation, ChatMessageDB } from "@/types"
 
 export default function ChatConversationsPage() {
@@ -235,22 +236,24 @@ export default function ChatConversationsPage() {
                               ? "bg-blue-600 text-white rounded-br-sm"
                             : msg.role === "ai-response"
                               ? "bg-purple-50 border border-purple-100 rounded-bl-sm"
+                            : msg.role === "ai-action"
+                              ? "bg-cyan-50 border border-cyan-200 rounded-bl-sm"
                             : msg.role === "ai-operation"
                               ? "bg-gray-50 border border-gray-100 rounded-bl-sm"
                             : "bg-amber-50 border border-amber-100 rounded-bl-sm"
                           }`}>
                             <div className="flex items-center gap-1.5 mb-1">
                               <span className="text-[10px] font-medium uppercase tracking-wide opacity-60">
-                                {msg.role === "ai-operation" ? "operation" : msg.role}
+                                {msg.role === "ai-operation" ? "operation" : msg.role === "ai-action" ? "action" : msg.role}
                               </span>
                               <span className="text-[10px] opacity-40">
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </span>
                             </div>
                             <p className={`text-sm whitespace-pre-wrap ${
-                              msg.role === "user" ? "text-white" : "text-gray-800"
+                              msg.role === "user" ? "text-white" : msg.role === "ai-action" ? "text-cyan-800 font-medium" : "text-gray-800"
                             }`}>
-                              {msg.content}
+                              {renderInlineMarkdown(msg.content)}
                             </p>
                           </div>
                         </div>

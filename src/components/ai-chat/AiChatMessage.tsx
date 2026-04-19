@@ -2,28 +2,10 @@
 
 import type { ChatMessage } from "@/types"
 import { Bot, Sparkles, User, Info, Zap } from "lucide-react"
-import { createElement, Fragment } from "react"
+import { renderInlineMarkdown } from "./renderMarkdown"
 
 interface Props {
   message: ChatMessage
-}
-
-/** Parse **bold** and `code` in plain text, return React elements */
-function renderInlineMarkdown(text: string) {
-  // Split by **bold**, *italic*, and `code` patterns
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return createElement("strong", { key: i }, part.slice(2, -2))
-    }
-    if (part.startsWith("*") && part.endsWith("*") && !part.startsWith("**")) {
-      return createElement("em", { key: i }, part.slice(1, -1))
-    }
-    if (part.startsWith("`") && part.endsWith("`")) {
-      return createElement("code", { key: i, className: "bg-black/5 px-1 rounded text-[0.85em]" }, part.slice(1, -1))
-    }
-    return part
-  })
 }
 
 export function AiChatMessage({ message }: Props) {
