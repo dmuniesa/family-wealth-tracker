@@ -20,6 +20,26 @@ interface AiChatContextType {
 
 const AiChatContext = createContext<AiChatContextType | null>(null)
 
+const HELP_TEXT = `📋 **Available commands & actions:**
+
+🔑 **Ask questions:**
+  "How much money do I have?" — See all accounts
+  "What did I spend on groceries?" — Spending breakdown
+  "How's my net worth?" — Financial overview
+
+⚡ **Actions the AI can perform:**
+  **Update balance** — "Update my mortgage to 145000€"
+  **Create backup** — "Make a backup"
+  **List backups** — "Show my backups"
+  **Categorize transactions** — "Categorize uncategorized transactions"
+  **Spending summary** — "Show my spending this month"
+  **Dashboard** — "Give me a financial overview"
+
+📝 **Commands:**
+  **/help** — Show this help message
+  Use the **+** button to start a new conversation
+  Use the **🕐** button to browse conversation history`
+
 export function useAiChat() {
   const ctx = useContext(AiChatContext)
   if (!ctx) throw new Error("useAiChat must be used within AiChatProvider")
@@ -177,6 +197,18 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
   }, [isOpen])
 
   const sendMessage = useCallback(async (content: string) => {
+    // Handle /help command locally
+    if (content.trim().toLowerCase() === "/help") {
+      const helpMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "system",
+        content: HELP_TEXT,
+        timestamp: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, helpMsg])
+      return
+    }
+
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -207,6 +239,19 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
       if (data.conversationId && !activeConversationId) {
         setActiveConversationId(data.conversationId)
         refreshConversations()
+      }
+
+      // Add action messages before AI response
+      if (data.actionsExecuted && data.actionsExecuted.length > 0) {
+        for (const action of data.actionsExecuted) {
+          const actionMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: "ai-action",
+            content: `⚡ ${action.name}: ${action.result}`,
+            timestamp: new Date().toISOString(),
+          }
+          setMessages(prev => [...prev, actionMsg])
+        }
       }
 
       const aiMsg: ChatMessage = {

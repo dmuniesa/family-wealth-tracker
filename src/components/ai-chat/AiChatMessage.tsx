@@ -1,10 +1,29 @@
 "use client"
 
 import type { ChatMessage } from "@/types"
-import { Bot, Sparkles, User, Info } from "lucide-react"
+import { Bot, Sparkles, User, Info, Zap } from "lucide-react"
+import { createElement, Fragment } from "react"
 
 interface Props {
   message: ChatMessage
+}
+
+/** Parse **bold** and `code` in plain text, return React elements */
+function renderInlineMarkdown(text: string) {
+  // Split by **bold**, *italic*, and `code` patterns
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return createElement("strong", { key: i }, part.slice(2, -2))
+    }
+    if (part.startsWith("*") && part.endsWith("*") && !part.startsWith("**")) {
+      return createElement("em", { key: i }, part.slice(1, -1))
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return createElement("code", { key: i, className: "bg-black/5 px-1 rounded text-[0.85em]" }, part.slice(1, -1))
+    }
+    return part
+  })
 }
 
 export function AiChatMessage({ message }: Props) {
@@ -29,8 +48,24 @@ export function AiChatMessage({ message }: Props) {
             <Bot className="w-3.5 h-3.5 text-purple-600" />
           </div>
           <div className="bg-purple-50 border border-purple-100 rounded-2xl rounded-bl-sm px-3 py-2">
-            <p className="text-sm text-gray-800 whitespace-pre-wrap">{message.content}</p>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap">{renderInlineMarkdown(message.content)}</p>
             <p className="text-[10px] text-gray-400 mt-1">{time}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (message.role === "ai-action") {
+    return (
+      <div className="flex justify-start mb-3">
+        <div className="flex gap-2 max-w-[85%]">
+          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-cyan-100 flex items-center justify-center mt-0.5">
+            <Zap className="w-3.5 h-3.5 text-cyan-600" />
+          </div>
+          <div className="bg-cyan-50 border border-cyan-200 rounded-2xl rounded-bl-sm px-3 py-2">
+            <p className="text-sm text-cyan-800 whitespace-pre-wrap font-medium">{renderInlineMarkdown(message.content)}</p>
+            <p className="text-[10px] text-cyan-400 mt-1">{time}</p>
           </div>
         </div>
       </div>
@@ -45,7 +80,7 @@ export function AiChatMessage({ message }: Props) {
             <Sparkles className="w-3.5 h-3.5 text-gray-500" />
           </div>
           <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-bl-sm px-3 py-2">
-            <p className="text-sm text-gray-600 whitespace-pre-wrap">{message.content}</p>
+            <p className="text-sm text-gray-600 whitespace-pre-wrap">{renderInlineMarkdown(message.content)}</p>
             <p className="text-[10px] text-gray-400 mt-1">{time}</p>
           </div>
         </div>
@@ -53,12 +88,15 @@ export function AiChatMessage({ message }: Props) {
     )
   }
 
-  // system messages
+  // system messages (help, errors, info)
   return (
     <div className="flex justify-center mb-3">
-      <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full">
-        <Info className="w-3 h-3" />
-        <span>{message.content}</span>
+      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 px-3 py-2 rounded-xl max-w-[90%]">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Info className="w-3 h-3 flex-shrink-0" />
+          <span className="font-medium">Info</span>
+        </div>
+        <p className="whitespace-pre-wrap">{renderInlineMarkdown(message.content)}</p>
       </div>
     </div>
   )

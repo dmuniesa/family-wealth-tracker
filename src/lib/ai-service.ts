@@ -366,4 +366,213 @@ Rules:
     const data = await chatResponse.json() as any;
     return data.choices?.[0]?.message?.content || 'No response from AI';
   }
+
+  private static readonly toolDefinitions = [
+    {
+      type: "function" as const,
+      function: {
+        name: "get_accounts",
+        description: "List all bank, investment and debt accounts with their current balances. Use when the user asks about their accounts or how much money they have.",
+        parameters: {
+          type: "object" as const,
+          properties: {},
+        },
+      },
+    },
+    {
+      type: "function" as const,
+      function: {
+        name: "update_balance",
+        description: "Update the balance of an account. Use when the user wants to set a new balance for an account (e.g., update mortgage balance after a payment, set savings balance).",
+        parameters: {
+          type: "object" as const,
+          properties: {
+            account_name: { type: "string", description: "Name or partial name of the account to update" },
+            amount: { type: "number", description: "New balance amount (positive number)" },
+            date: { type: "string", description: "Date for the balance entry in YYYY-MM-DD format. Defaults to today." },
+          },
+          required: ["account_name", "amount"],
+        },
+      },
+    },
+    {
+      type: "function" as const,
+      function: {
+        name: "get_spending_summary",
+        description: "Get a summary of spending and income by category for a time period. Use when the user asks about their spending, expenses, or income breakdown.",
+        parameters: {
+          type: "object" as const,
+          properties: {
+            months: { type: "number", description: "Number of months to look back (default: 1)" },
+          },
+        },
+      },
+    },
+    {
+      type: "function" as const,
+      function: {
+        name: "get_dashboard",
+        description: "Get overall financial dashboard: total banking, investments, debts, and net worth. Use when the user asks for a general overview of their finances.",
+        parameters: {
+          type: "object" as const,
+          properties: {},
+        },
+      },
+    },
+    {
+      type: "function" as const,
+      function: {
+        name: "create_backup",
+        description: "Create a backup copy of the database. Use when the user asks to make a backup or save current data.",
+        parameters: {
+          type: "object" as const,
+          properties: {},
+        },
+      },
+    },
+    {
+      type: "function" as const,
+      function: {
+        name: "list_backups",
+        description: "List the most recent database backups. Use when the user wants to see available backups.",
+        parameters: {
+          type: "object" as const,
+          properties: {},
+        },
+      },
+    },
+    {
+      type: "function" as const,
+      function: {
+        name: "categorize_transactions",
+        description: "Use AI to categorize uncategorized transactions. Use when the user wants to categorize or classify their transactions automatically.",
+        parameters: {
+          type: "object" as const,
+          properties: {},
+        },
+      },
+    },
+  ];
+
+  /**
+   * Chat with tool calling — AI can execute actions
+   */
+  static async chatWithTools(
+    familyId: number,
+    message: string,
+    executeAction: (name: string, params: Record<string, any>) => Promise<{ success: boolean; data: any; message: string }>,
+    context?: string,
+  ): Promise<{ response: string; actionsExecuted: Array<{ name: string; result: string }> }> {
+    const db = await getDatabase();
+    const settings = await db.get(
+      'SELECT * FROM family_settings WHERE family_id = ?',
+      [familyId]
+    ) as any;
+
+    if (!settings?.ai_api_key_encrypted) {
+      throw new Error('No API key configured');
+    }
+
+    const apiKey = decryptIBAN(settings.ai_api_key_encrypted);
+    const baseUrl = settings.ai_base_url || 'https://api.openai.com/v1';
+    const model = settings.ai_model || 'gpt-4o-mini';
+
+    const systemPrompt = `You are a helpful financial assistant for a family wealth tracker application. You can answer questions AND perform actions using the tools available to you. Respond in the same language the user writes in (Spanish or English). Be concise. When performing actions, confirm what you did briefly.${context ? '\n\n' + context : ''}`;
+
+    const actionsExecuted: Array<{ name: string; result: string }> = [];
+    const messages: Array<{ role: string; content: string | null; tool_calls?: any[]; tool_call_id?: string }> = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: message },
+    ];
+
+    // Call API with tools (max 3 rounds of tool calling)
+    for (let round = 0; round < 3; round++) {
+      const chatResponse = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          tools: this.toolDefinitions,
+          tool_choice: 'auto',
+          temperature: 0.3,
+        }),
+      });
+
+      if (!chatResponse.ok) {
+        const errorText = await chatResponse.text();
+        throw new Error(`AI API error: ${chatResponse.status} - ${errorText.substring(0, 200)}`);
+      }
+
+      const data = await chatResponse.json() as any;
+      const choice = data.choices?.[0];
+      const assistantMessage = choice?.message;
+
+      if (!assistantMessage) {
+        throw new Error('No response from AI');
+      }
+
+      // If no tool calls, return the content directly
+      if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
+        return {
+          response: assistantMessage.content || 'No response',
+          actionsExecuted,
+        };
+      }
+
+      // Add assistant message with tool calls to conversation
+      messages.push({
+        role: 'assistant',
+        content: assistantMessage.content,
+        tool_calls: assistantMessage.tool_calls,
+      });
+
+      // Execute each tool call
+      for (const toolCall of assistantMessage.tool_calls) {
+        const fnName = toolCall.function.name;
+        let fnParams: Record<string, any> = {};
+        try {
+          fnParams = JSON.parse(toolCall.function.arguments);
+        } catch {
+          fnParams = {};
+        }
+
+        const result = await executeAction(fnName, fnParams);
+        actionsExecuted.push({ name: fnName, result: result.message });
+
+        messages.push({
+          role: 'tool',
+          content: JSON.stringify(result),
+          tool_call_id: toolCall.id,
+        } as any);
+      }
+    }
+
+    // If we exhausted rounds, make one final call without tools
+    const finalResponse = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!finalResponse.ok) {
+      throw new Error('AI API error on final response');
+    }
+
+    const finalData = await finalResponse.json() as any;
+    return {
+      response: finalData.choices?.[0]?.message?.content || 'Action completed',
+      actionsExecuted,
+    };
+  }
 }

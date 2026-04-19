@@ -521,7 +521,7 @@ async function migrateDatabaseForChatTables(db: Database) {
       CREATE TABLE IF NOT EXISTS chat_messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         conversation_id INTEGER NOT NULL,
-        role TEXT CHECK(role IN ('user', 'ai-operation', 'ai-response', 'system')) NOT NULL,
+        role TEXT NOT NULL,
         content TEXT NOT NULL,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE
@@ -536,8 +536,44 @@ async function migrateDatabaseForChatTables(db: Database) {
     await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_id ON chat_messages(conversation_id)`);
     await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp)`);
 
+    // Migrate chat_messages: remove CHECK constraint on role column if it exists
+    await migrateChatMessagesDropRoleCheck(db);
+
     console.log('Successfully created chat tables and indexes');
   } catch (error) {
     console.error('Error creating chat tables:', error);
+  }
+}
+
+async function migrateChatMessagesDropRoleCheck(db: Database) {
+  try {
+    const tableInfo = await db.get(
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='chat_messages'"
+    ) as any;
+
+    if (tableInfo?.sql?.includes('CHECK')) {
+      console.log('Migrating chat_messages table to remove role CHECK constraint...');
+      await db.run('BEGIN TRANSACTION');
+      await db.run(`
+        CREATE TABLE chat_messages_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          conversation_id INTEGER NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE
+        )
+      `);
+      await db.run('INSERT INTO chat_messages_new SELECT * FROM chat_messages');
+      await db.run('DROP TABLE chat_messages');
+      await db.run('ALTER TABLE chat_messages_new RENAME TO chat_messages');
+      await db.run('CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_id ON chat_messages(conversation_id)');
+      await db.run('CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp)');
+      await db.run('COMMIT');
+      console.log('Successfully migrated chat_messages table');
+    }
+  } catch (error) {
+    await db.run('ROLLBACK');
+    console.error('Error migrating chat_messages:', error);
   }
 }

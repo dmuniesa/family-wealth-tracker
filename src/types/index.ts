@@ -174,7 +174,7 @@ export interface MonthlySummary {
 }
 
 // AI Chat types
-export type ChatMessageRole = 'user' | 'ai-operation' | 'ai-response' | 'system';
+export type ChatMessageRole = 'user' | 'ai-operation' | 'ai-response' | 'system' | 'ai-action';
 
 export interface ChatMessage {
   id: string;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { AIService } from '@/lib/ai-service';
+import { AIActionExecutor } from '@/lib/ai-actions';
 import { ChatService } from '@/lib/chat-service';
 
 export async function POST(request: NextRequest) {
@@ -41,16 +42,28 @@ export async function POST(request: NextRequest) {
       await ChatService.updateConversationTitle(convId, title);
     }
 
-    const response = await AIService.chat(session.user.family_id, message.trim(), context);
+    // Chat with tools — AI can execute actions
+    const { response, actionsExecuted } = await AIService.chatWithTools(
+      session.user.family_id,
+      message.trim(),
+      (actionName, params) => AIActionExecutor.execute(actionName, params, session.user.family_id!),
+      context,
+    );
 
     // Save AI response
     const timestamp = new Date().toISOString();
     await ChatService.addMessage(convId, 'ai-response', response);
 
+    // Save executed actions as separate messages
+    for (const action of actionsExecuted) {
+      await ChatService.addMessage(convId, 'ai-action', `⚡ ${action.name}: ${action.result}`);
+    }
+
     return NextResponse.json({
       response,
       timestamp,
       conversationId: convId,
+      actionsExecuted: actionsExecuted.length > 0 ? actionsExecuted : undefined,
     });
   } catch (error) {
     console.error('[AI Chat] Error:', error);

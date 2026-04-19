@@ -486,7 +486,7 @@
     "title": "AI Assistant",
     "subtitle": "Ask about your finances",
     "placeholder": "Ask about your finances...",
-    "noMessages": "No messages yet. Ask me anything!",
+    "noMessages": "No messages yet. Ask me anything! Type /help for commands.",
     "history": "History",
     "newConversation": "New conversation",
     "noConversations": "No conversations yet",
