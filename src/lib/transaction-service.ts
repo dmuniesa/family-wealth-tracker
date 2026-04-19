@@ -2,7 +2,7 @@ import { getDatabase } from './database';
 import { computeSourceHash } from './hash';
 import { CategoryService } from './category-service';
 import { TransferRuleService } from './transfer-rule-service';
-import type { Transaction, ParsedTransaction, MonthlySummary, CategoryType } from '@/types';
+import type { Transaction, ParsedTransaction, MonthlySummary, CategoryEvolution, CategoryType } from '@/types';
 
 export interface TransactionFilters {
   accountId?: number;
@@ -382,5 +382,65 @@ export class TransactionService {
     }
 
     return results.reverse();
+  }
+
+  /**
+   * Get how specific categories evolve over N months
+   */
+  static async getCategoryEvolution(familyId: number, months: number = 6): Promise<CategoryEvolution[]> {
+    const db = await getDatabase();
+    const now = new Date();
+    const monthStrings: string[] = [];
+
+    for (let i = 0; i < months; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthStrings.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+
+    const placeholders = monthStrings.map(() => '?').join(',');
+    const transactions = await db.all(
+      `SELECT
+        strftime('%Y-%m', t.date) as month,
+        t.category_id, t.amount,
+        tc.name as category_name, tc.color as category_color,
+        tc.icon as category_icon, tc.type as category_type
+      FROM transactions t
+      LEFT JOIN transaction_categories tc ON t.category_id = tc.id
+      WHERE t.family_id = ?
+        AND strftime('%Y-%m', t.date) IN (${placeholders})
+        AND t.is_transfer = 0
+        AND (tc.type IS NULL OR tc.type != 'non_computable')
+      ORDER BY tc.name, month`,
+      [familyId, ...monthStrings]
+    ) as any[];
+
+    const map = new Map<number, CategoryEvolution>();
+    for (const t of transactions) {
+      if (!t.category_id) continue;
+      let entry = map.get(t.category_id);
+      if (!entry) {
+        entry = {
+          categoryId: t.category_id,
+          categoryName: t.category_name || 'Uncategorized',
+          categoryColor: t.category_color || '#9CA3AF',
+          categoryIcon: t.category_icon || 'HelpCircle',
+          type: (t.category_type || 'expense') as CategoryType,
+          evolution: [],
+        };
+        map.set(t.category_id, entry);
+      }
+      const existing = entry.evolution.find(e => e.month === t.month);
+      if (existing) {
+        existing.amount += Math.abs(t.amount);
+      } else {
+        entry.evolution.push({ month: t.month, amount: Math.abs(t.amount) });
+      }
+    }
+
+    for (const entry of map.values()) {
+      entry.evolution.sort((a, b) => a.month.localeCompare(b.month));
+    }
+
+    return Array.from(map.values());
   }
 }

@@ -173,6 +173,15 @@ export interface MonthlySummary {
   nonComputableTotal: number;
 }
 
+export interface CategoryEvolution {
+  categoryId: number;
+  categoryName: string;
+  categoryColor: string;
+  categoryIcon: string;
+  type: CategoryType;
+  evolution: { month: string; amount: number }[];
+}
+
 // AI Chat types
 export type ChatMessageRole = 'user' | 'ai-operation' | 'ai-response' | 'system' | 'ai-action';
 

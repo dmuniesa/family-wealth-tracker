@@ -16,7 +16,8 @@ import {
   Shield,
   Mail,
   Tag,
-  MessageSquare
+  MessageSquare,
+  BarChart3
 } from "lucide-react"
 import { useTranslations, useLocale } from 'next-intl'
 import type { User } from "@/types"
@@ -54,6 +55,11 @@ export function Sidebar({ user, onLogout, isMobileMenuOpen: externalMobileMenuOp
       name: t('navigation.transactions'),
       href: `/${locale}/transactions`,
       icon: ArrowLeftRight,
+    },
+    {
+      name: t('navigation.analytics'),
+      href: `/${locale}/analytics`,
+      icon: BarChart3,
     },
     {
       name: t('navigation.categories'),

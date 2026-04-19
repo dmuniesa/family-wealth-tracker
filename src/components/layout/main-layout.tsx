@@ -26,6 +26,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     if (pathname.includes('/dashboard')) return t('navigation.dashboard')
     if (pathname.includes('/accounts')) return t('navigation.accounts')
     if (pathname.includes('/history')) return t('navigation.history')
+    if (pathname.includes('/analytics')) return t('navigation.analytics')
     if (pathname.includes('/settings')) return t('navigation.settings')
     return ''
   }
