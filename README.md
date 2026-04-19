@@ -65,7 +65,7 @@ GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
 ```
 
 ## 🏗️ Technical Stack
-- **Frontend**: React with Next.js 15.5.2, Tailwind CSS + shadcn/ui components, Recharts for visualizations
+- **Frontend**: React with Next.js 15.5.9, Tailwind CSS + shadcn/ui components, Recharts for visualizations
 - **Backend**: Next.js API routes with TypeScript
 - **Database**: SQLite with encrypted IBAN storage
 - **Authentication**: Session-based authentication with bcrypt encryption
@@ -74,10 +74,11 @@ GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
 - **Deployment**: Docker with Docker Compose support
 
 ## 🔐 User Authentication & Authorization
-- All users have identical permissions (no role hierarchy)
-- Email/password authentication
+- **Role-Based Access Control**: Three-tier system (Administrator, User, Guest)
+- Email/password authentication with secure password recovery
 - All family members share the same `family_id`
-- Session-based authentication
+- Session-based authentication (Iron Session)
+- Password hashing with bcrypt
 
 ## 🎨 Core Features
 
@@ -128,7 +129,7 @@ GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
 - **Member Statistics**: Display total family member count and status indicators
 - **User Identification**: Clear marking of current user in member listings
 
-### 8. Weekly Email Reports & Notifications
+### 7. Weekly Email Reports & Notifications
 - **Automated Reports**: Weekly financial summaries sent via email with configurable scheduling
 - **Unified Email Service**: Support for both SMTP and Resend email providers with seamless switching
 - **SMTP Configuration**: Traditional email server setup with connection testing and validation
@@ -141,7 +142,7 @@ GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
 - **Test Functionality**: Send test emails to verify configuration before scheduling reports
 - **Provider Status**: Visual indicators showing active provider and configuration status
 
-### 9. Debt Amortization & Payment Tracking
+### 8. Debt Amortization & Payment Tracking
 - **Loan Configuration**: Set up APR rate (TAE), payment amounts, and loan terms for debt accounts
 - **Automatic Updates**: Monthly interest application on the 1st of each month (optional per debt)
 - **Payment Methods**: Support for French method (fixed payments) and interest-only loans
@@ -150,7 +151,7 @@ GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
 - **Progress Tracking**: Monitor remaining months to payoff and total interest calculations
 - **Payment History**: Detailed transaction history distinguishing between automatic updates, manual entries, and payments
 
-### 7. User Management & Administration
+### 9. User Management & Administration
 - **System-Wide User Management**: View and manage all users across all families in the database with comprehensive oversight
 - **Admin Dashboard**: Dedicated administrative section with tabbed interface for system management and multi-service configuration
 - **Global User Operations**: Full CRUD operations for all user accounts in the system, not just family members
@@ -222,44 +223,18 @@ GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
 - Historical balance editing interface
 
 ## ✅ Implemented Features
-- **Complete Debt Tracking**: Full support for mortgage, loan, and liability management (no IBAN required)
-- **Smart Net Worth Calculation**: Automatic calculation of (Assets - Debts)
-- **Visual Debt Management**: Red-coded debt visualization in charts and dashboard
-- **Trilingual Account Categories**: Banking, Investment, and Debt account types
-- **Intelligent Form Validation**: IBAN required only for banking/investment accounts
-- **Comprehensive Dashboard**: 5-card layout showing Banking, Investment, Debt, Net Worth, and Monthly Change
-- **Enhanced Charts**: Pie charts with debt visualization and line charts tracking true net worth
-- **Automatic Database Migration**: Seamless updates to existing databases
-- **Bilingual Interface**: Complete English and Spanish translation support
-- **Secure Data Handling**: Encrypted IBAN storage with proper input validation
-- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
-- **Docker Deployment**: Production-ready containerization with Docker Compose
-- **Backup & Recovery System**: Complete backup functionality with cloud storage integration
-- **Scheduled Backups**: Automated backup creation with configurable intervals
-- **Cloud Storage Integration**: OAuth 2.0 authentication for Dropbox and Google Drive
-- **Family Member Management**: Complete member administration with registration controls
-- **Dynamic Registration Settings**: Toggle new user registration on/off for family access control
-- **Member Administration**: View, manage, and remove family members with proper safeguards
-- **Role-Based Access Control**: Three-tier permission system with Administrator, User, and Guest roles
-- **Permission Management**: Administrators can assign and modify user roles with proper restrictions
-- **Feature-Level Security**: Role-based access to backups, user management, and system settings
-- **Copy Confirmation Feedback**: Visual confirmation when copying Family ID to clipboard
-- **Weekly Email Notifications**: Automated weekly financial reports sent via email with customizable scheduling
-- **Email Configuration**: SMTP setup with test functionality and notification history tracking
-- **Debt Amortization System**: Advanced loan tracking with automatic monthly interest application
-- **Payment Scheduling**: French method and interest-only payment calculations with full amortization schedules
-- **Administrative User Management**: Complete user administration system with create, read, update, delete operations
-- **System-Wide User Oversight**: Global user management across all families with comprehensive statistics dashboard
-- **Cross-Family Administration**: Administrators can manage users from any family with proper safeguards and logging
-- **Enhanced User Interface**: Improved select components with portal-based rendering and proper positioning
-- **Real-Time UI Updates**: Select dropdowns show current values immediately on page load with proper initialization
-- **Resend Email Integration**: Modern email delivery service integration with excellent deliverability and developer experience
-- **Unified Email Service**: Seamless switching between SMTP and Resend providers with visual status indicators
-- **Admin Interface**: Enhanced tabbed administrative dashboard with email provider management and user administration
-- **User Management API**: RESTful endpoints for user CRUD operations with global scope and proper authentication
-- **Form Validation**: Comprehensive client and server-side validation for user creation and editing
-- **Password Management**: Secure password handling with optional updates and strength requirements
-- **UI Component Improvements**: Portal-based dropdowns prevent clipping issues and improve user experience
+- **Complete Debt Tracking**: Full support for mortgage, loan, and liability management with amortization schedules
+- **Smart Net Worth Calculation**: Automatic calculation of (Assets - Debts) with month-over-month tracking
+- **Bank Transactions**: CSV import (B100, BBVA), AI categorization, analytics, batch operations, transfer detection
+- **AI Chat Assistant**: Conversational interface with function calling for financial actions
+- **Role-Based Access Control**: Three-tier permission system (Administrator, User, Guest)
+- **Password Recovery**: Email-based reset with secure one-time tokens
+- **Weekly Email Reports**: Automated financial summaries via SMTP or Resend
+- **Backup & Recovery**: Manual/scheduled backups with Dropbox and Google Drive integration
+- **System Logging**: Comprehensive operation monitoring with admin panel
+- **Bilingual Interface**: Complete English and Spanish localization
+- **Docker Deployment**: Production-ready containerization with HTTPS and Cloudflare Tunnel support
+- **Automatic Migrations**: Seamless database schema updates on startup
 
 ## 🎯 Success Criteria
 - ✅ Family members can easily identify and manage all account types including debts
@@ -274,111 +249,27 @@ GOOGLE_DRIVE_CLIENT_SECRET=your-google-drive-client-secret
 ## 📖 Documentation
 
 For detailed setup and deployment guides, see the [documentation directory](docs/).
+- [Data Model & Database Schema](docs/DATA_MODEL.md) - Complete schema with all 11 tables
 
 ## 📊 Database Schema
 
-### Users Table
-```sql
-- id (Primary Key)
-- email (Unique)
-- password_hash
-- name
-- family_id (Foreign Key - all users share same family_id)
-- created_at
-```
+For the complete schema with all columns, constraints, indexes, and relationships, see [docs/DATA_MODEL.md](docs/DATA_MODEL.md).
 
-### Accounts Table
-```sql
-- id (Primary Key)
-- family_id (Foreign Key)
-- name (e.g., "Santander Payroll Account")
-- category (ENUM: "Banking", "Investment", "Debt")
-- currency (e.g., "EUR", "USD")
-- iban_encrypted (Full IBAN encrypted)
-- notes (Optional text field)
-- created_at
-- updated_at
--- Debt Amortization Fields (for Debt category accounts)
-- apr_rate (Annual Percentage Rate as decimal)
-- monthly_payment (Fixed monthly payment amount)
-- loan_term_months (Original loan term)
-- remaining_months (Months remaining to pay)
-- payment_type (ENUM: "fixed", "interest_only")
-- auto_update_enabled (Boolean for automatic updates)
-- last_auto_update (Date of last automatic update)
-- original_balance (Original loan amount)
-- loan_start_date (When the loan started)
-```
+### Summary of Tables (11 total)
 
-### Balances Table
-```sql
-- id (Primary Key)
-- account_id (Foreign Key)
-- amount (Decimal)
-- date (Date of balance record)
-- created_at
-- updated_at
--- Payment Tracking Fields
-- balance_type (ENUM: "manual", "automatic", "payment")
-- interest_amount (Interest portion of payment/update)
-- principal_amount (Principal portion of payment)
-- payment_amount (Total payment amount)
-- notes (Transaction description)
-```
-
-### Transactions Table
-```sql
-- id (Primary Key)
-- account_id (Foreign Key)
-- family_id (Foreign Key)
-- category_id (Foreign Key -> transaction_categories)
-- amount (Decimal, signed: negative=expense, positive=income)
-- currency (e.g., "EUR")
-- date (Operation date)
-- value_date (Value date, optional)
-- description (e.g., "Pago con tarjeta", "Transferencia recibida")
-- detail (Counterparty or subject)
-- observations (Full bank observations)
-- movement_type (e.g., "Ingreso", "Gasto", "Pago con tarjeta")
-- balance_after (Running balance from bank statement)
-- is_transfer (Boolean - internal transfer between own accounts)
-- source (e.g., "B100", "BBVA")
-- source_hash (SHA-256 for deduplication, UNIQUE per account)
-- ai_confidence (0-1 from AI categorization)
-- notes (User notes)
-```
-
-### Transaction Categories Table
-```sql
-- id (Primary Key)
-- family_id (Foreign Key)
-- name (e.g., "Groceries", "Transport")
-- type (ENUM: "income", "expense", "both", "non_computable")
-- icon (Lucide icon name)
-- color (Hex color)
-- ai_description (Guidance for AI categorization prompt)
-- is_system (Boolean - seeded default vs user-created)
-```
-
-### Transfer Rules Table
-```sql
-- id (Primary Key)
-- family_id (Foreign Key)
-- rule_type (ENUM: "contains_text", "sender_is", "description_matches")
-- pattern (Text to match)
-- field (ENUM: "description", "detail", "observations", "any")
-- is_active (Boolean)
-```
-
-### Family Settings Table
-```sql
-- id (Primary Key)
-- family_id (Foreign Key, UNIQUE)
-- ai_api_key_encrypted (AES-256-CBC encrypted)
-- ai_base_url (e.g., "https://api.openai.com/v1", "http://localhost:11434/v1")
-- ai_model (e.g., "gpt-4o-mini")
-- ai_last_test (JSON with last test result)
-```
+| Table | Purpose | Key Relationships |
+|---|---|---|
+| `users` | User accounts with roles | family_id groups users |
+| `accounts` | Banking, Investment, Debt accounts | family_id, amortization fields for debt |
+| `balances` | Historical balance records | account_id (cascade delete), balance_type |
+| `transactions` | Bank transactions with AI categorization | account_id, family_id, category_id, source_hash (unique) |
+| `transaction_categories` | Categories with AI descriptions | family_id, type (income/expense/both/non_computable) |
+| `transfer_rules` | Auto-transfer detection rules | family_id, rule_type + pattern + field |
+| `family_settings` | AI config per family | family_id (unique), encrypted API key |
+| `system_logs` | Operation logging | family_id, user_id, level, category, status |
+| `password_reset_tokens` | Password recovery tokens | user_id, token_hash (unique), expires_at |
+| `chat_conversations` | AI chat sessions | family_id, user_id, type, status |
+| `chat_messages` | Individual chat messages | conversation_id (cascade delete), role, content |
 
 
 ### Cloud Storage Setup (Optional)
@@ -414,6 +305,8 @@ Choose between SMTP or Resend for email notifications:
 ## 📋 Future Enhancements
 - ~~Expense categorization and cash flow analysis~~ ✅ Implemented (see Transactions)
 - ~~Automated bank integration (API)~~ ✅ Implemented (CSV import with auto-detection)
+- ~~AI-powered financial assistant~~ ✅ Implemented (see AI Chat)
+- ~~Password recovery~~ ✅ Implemented (email-based reset)
 - Budget tracking and financial goals
 - Multi-currency conversion with real-time rates
 - Mobile app companion
@@ -421,7 +314,6 @@ Choose between SMTP or Resend for email notifications:
 - Backup encryption and versioning
 - Investment portfolio analysis
 - Cash flow projections and financial planning
-- Integration with external financial services
 
 ### 10. Bank Transactions & AI Categorization
 - **CSV Import**: Auto-detect and parse bank statements from multiple banks (B100/Santander, BBVA)
@@ -433,7 +325,29 @@ Choose between SMTP or Resend for email notifications:
 - **"Non-computable" Type**: Mark transactions to exclude from totals without deleting them
 - **Monthly Analytics**: Bar charts showing expenses/income by category with month navigation
 - **Configurable AI Provider**: Settings page with base URL, model, and API key management (supports local Ollama)
+- **Batch Operations**: Bulk update categories, mark as transfers, delete multiple transactions
 - See [docs/TRANSACTIONS.md](docs/TRANSACTIONS.md) for detailed documentation
+
+### 11. AI Chat Assistant
+- **Conversational Interface**: Chat with an AI assistant about your finances (admin page)
+- **Function Calling**: AI can execute actions: get account details, update balances, fetch spending summaries
+- **Financial Context**: AI has access to current balances, recent transactions, and monthly spending breakdowns
+- **Persistent Conversations**: Chat history saved with title, status, and full message log
+- **Multi-language**: AI responds in the user's language (Spanish or English)
+- **Help Command**: Built-in `/help` command for available actions
+- See [docs/AI-CHAT.md](docs/AI-CHAT.md) for detailed documentation
+
+### 12. Password Recovery
+- **Email-Based Reset**: Send password reset links via email using configured SMTP or Resend provider
+- **Secure Tokens**: One-time use tokens with expiration (stored hashed in database)
+- **Rate Limiting**: Prevents email enumeration attacks
+- **Localized Templates**: Reset emails available in English and Spanish
+
+### 13. System Logging
+- **Comprehensive Logging**: Track operations across categories (debt updates, email, backup, auth, system)
+- **Admin Panel**: Dedicated system logs tab in admin dashboard
+- **Performance Metrics**: Duration tracking for operations
+- **Multi-Level**: Info, warn, error, and success log levels with filtering
 
 ---
 
