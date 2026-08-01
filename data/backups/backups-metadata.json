@@ -1,6 +1,46 @@
 {
   "backups": [
     {
+      "id": "backup-2026-04-19T22-00-00-065Z",
+      "name": "wealth-tracker-2026-04-19T22-00-00-065Z.db",
+      "size": 225280,
+      "created_at": "2026-04-19T22:00:00.094Z",
+      "location": "local",
+      "filePath": "C:\\Users\\djmun\\Dropbox\\Archivos_David\\web_patrimonio\\data\\backups\\wealth-tracker-2026-04-19T22-00-00-065Z.db"
+    },
+    {
+      "id": "backup-2026-04-18T22-00-00-110Z",
+      "name": "wealth-tracker-2026-04-18T22-00-00-110Z.db",
+      "size": 180224,
+      "created_at": "2026-04-18T22:00:00.205Z",
+      "location": "local",
+      "filePath": "C:\\Users\\djmun\\Dropbox\\Archivos_David\\web_patrimonio\\data\\backups\\wealth-tracker-2026-04-18T22-00-00-110Z.db"
+    },
+    {
+      "id": "backup-2026-04-17T22-00-00-057Z",
+      "name": "wealth-tracker-2026-04-17T22-00-00-057Z.db",
+      "size": 180224,
+      "created_at": "2026-04-17T22:00:00.095Z",
+      "location": "local",
+      "filePath": "C:\\Users\\djmun\\Dropbox\\Archivos_David\\web_patrimonio\\data\\backups\\wealth-tracker-2026-04-17T22-00-00-057Z.db"
+    },
+    {
+      "id": "backup-2026-04-14T22-00-00-176Z",
+      "name": "wealth-tracker-2026-04-14T22-00-00-176Z.db",
+      "size": 180224,
+      "created_at": "2026-04-14T22:00:00.204Z",
+      "location": "local",
+      "filePath": "C:\\Users\\djmun\\Dropbox\\Archivos_David\\web_patrimonio\\data\\backups\\wealth-tracker-2026-04-14T22-00-00-176Z.db"
+    },
+    {
+      "id": "backup-2026-04-13T22-00-00-234Z",
+      "name": "wealth-tracker-2026-04-13T22-00-00-234Z.db",
+      "size": 167936,
+      "created_at": "2026-04-13T22:00:00.432Z",
+      "location": "local",
+      "filePath": "C:\\Users\\djmun\\Dropbox\\Archivos_David\\web_patrimonio\\data\\backups\\wealth-tracker-2026-04-13T22-00-00-234Z.db"
+    },
+    {
       "id": "backup-2025-08-31T08-49-10-202Z",
       "name": "wealth-tracker-2025-08-31T08-49-10-202Z.db",
       "size": 45056,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -24,28 +24,27 @@ export default function AnalyticsPage() {
   const [categories, setCategories] = useState<TransactionCategory[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        const [summaryRes, trendsRes, evolutionRes, catRes] = await Promise.all([
-          fetch(`/api/transactions/analytics/monthly?month=${month}`),
-          fetch(`/api/transactions/analytics/trends?months=12`),
-          fetch(`/api/analytics/category-evolution?months=12`),
-          fetch("/api/transactions/categories"),
-        ])
-        if (summaryRes.ok) setSummary(await summaryRes.json())
-        if (trendsRes.ok) setTrends(await trendsRes.json())
-        if (evolutionRes.ok) setCategoryEvolution(await evolutionRes.json())
-        if (catRes.ok) setCategories(await catRes.json())
-      } catch (err) {
-        console.error("Failed to fetch analytics:", err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchData = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true)
+    try {
+      const [summaryRes, trendsRes, evolutionRes, catRes] = await Promise.all([
+        fetch(`/api/transactions/analytics/monthly?month=${month}`),
+        fetch(`/api/transactions/analytics/trends?months=12`),
+        fetch(`/api/analytics/category-evolution?months=12`),
+        fetch("/api/transactions/categories"),
+      ])
+      if (summaryRes.ok) setSummary(await summaryRes.json())
+      if (trendsRes.ok) setTrends(await trendsRes.json())
+      if (evolutionRes.ok) setCategoryEvolution(await evolutionRes.json())
+      if (catRes.ok) setCategories(await catRes.json())
+    } catch (err) {
+      console.error("Failed to fetch analytics:", err)
+    } finally {
+      if (showLoading) setLoading(false)
     }
-    fetchData()
   }, [month])
+
+  useEffect(() => { fetchData(true) }, [fetchData])
 
   if (loading && !summary) {
     return (
@@ -86,7 +85,7 @@ export default function AnalyticsPage() {
             </TabsContent>
 
             <TabsContent value="expenses">
-              <ExpensesTab summary={summary} categories={categories} month={month} />
+              <ExpensesTab summary={summary} categories={categories} month={month} onSummaryRefresh={fetchData} />
             </TabsContent>
 
             <TabsContent value="trends">
@@ -94,7 +93,7 @@ export default function AnalyticsPage() {
             </TabsContent>
 
             <TabsContent value="categories">
-              <CategoryEvolutionTab data={categoryEvolution} categories={categories} month={month} />
+              <CategoryEvolutionTab data={categoryEvolution} categories={categories} month={month} onSummaryRefresh={fetchData} />
             </TabsContent>
           </Tabs>
         </div>

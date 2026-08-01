@@ -20,9 +20,10 @@ interface CategoryEvolutionTabProps {
   data: CategoryEvolution[]
   categories: TransactionCategory[]
   month: string
+  onSummaryRefresh: () => Promise<void>
 }
 
-export function CategoryEvolutionTab({ data, categories, month }: CategoryEvolutionTabProps) {
+export function CategoryEvolutionTab({ data, categories, month, onSummaryRefresh }: CategoryEvolutionTabProps) {
   const t = useTranslations("analytics")
   const locale = useLocale()
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
@@ -247,7 +248,12 @@ export function CategoryEvolutionTab({ data, categories, month }: CategoryEvolut
           <TransactionList
             transactions={categoryTransactions}
             categories={categories}
-            onRefresh={() => fetchCategoryTransactions(selectedCategoryId)}
+            onRefresh={async () => {
+              await Promise.all([
+                fetchCategoryTransactions(selectedCategoryId),
+                onSummaryRefresh(),
+              ])
+            }}
           />
         </div>
       )}

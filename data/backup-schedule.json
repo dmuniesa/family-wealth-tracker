@@ -3,5 +3,6 @@
   "time": "22:00",
   "enabled": true,
   "maxBackups": 10,
-  "nextRun": "2025-09-02T20:00:00.000Z"
+  "nextRun": "2026-04-20T20:00:00.000Z",
+  "lastRun": "2026-04-19T22:00:00.130Z"
 }

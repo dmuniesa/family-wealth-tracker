@@ -12,6 +12,7 @@ interface ExpensesTabProps {
   summary: MonthlySummary | null
   categories: TransactionCategory[]
   month: string
+  onSummaryRefresh: () => Promise<void>
 }
 
 interface PieDataItem {
@@ -21,7 +22,7 @@ interface PieDataItem {
   categoryId: number
 }
 
-export function ExpensesTab({ summary, categories, month }: ExpensesTabProps) {
+export function ExpensesTab({ summary, categories, month, onSummaryRefresh }: ExpensesTabProps) {
   const t = useTranslations("analytics")
   const locale = useLocale()
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
@@ -232,7 +233,12 @@ export function ExpensesTab({ summary, categories, month }: ExpensesTabProps) {
             <TransactionList
               transactions={categoryTransactions}
               categories={categories}
-              onRefresh={() => fetchCategoryTransactions(selectedCategoryId!)}
+              onRefresh={async () => {
+                await Promise.all([
+                  fetchCategoryTransactions(selectedCategoryId!),
+                  onSummaryRefresh(),
+                ])
+              }}
             />
           </div>
         </>
