@@ -29,6 +29,8 @@
     "assetsVsDebts": "Assets vs Debts breakdown",
     "addAccount": "Add Account",
     "recordBalance": "Record Balance",
+    "vsLastMonth": "vs last month",
+    "rangeAll": "All",
     "loading": "Loading dashboard..."
   },
   "accounts": {

@@ -29,6 +29,8 @@
     "assetsVsDebts": "Desglose Activos vs Deudas",
     "addAccount": "Agregar Cuenta",
     "recordBalance": "Registrar Saldo",
+    "vsLastMonth": "vs mes anterior",
+    "rangeAll": "Todo",
     "loading": "Cargando panel principal..."
   },
   "accounts": {
