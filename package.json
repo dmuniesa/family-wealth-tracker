@@ -7,6 +7,8 @@
     "build": "next build --turbopack",
     "build:prod": "next build",
     "start": "next start",
+    "start-server": "start-server.bat",
+    "stop-server": "stop-server.bat",
     "lint": "eslint",
     "clean-db": "rm -f data/wealth_tracker.db",
     "docker:build": "docker build -t family-wealth-tracker .",
