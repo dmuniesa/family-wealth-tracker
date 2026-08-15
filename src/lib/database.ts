@@ -156,6 +156,7 @@ async function initializeDatabase(db: Database) {
   `);
   
   await migrateAccountsTableForAmortization(db);
+  await migrateAccountsTableForSettlement(db);
   await migrateDatabaseForSystemLogs(db);
   await migrateDatabaseForTransactions(db);
   await migrateDatabaseForPasswordReset(db);
@@ -275,6 +276,37 @@ async function migrateAccountsTableForAmortization(db: Database) {
   } catch (error) {
     await db.run('ROLLBACK');
     console.error('Error migrating accounts table for amortization:', error);
+    throw error;
+  }
+}
+
+async function migrateAccountsTableForSettlement(db: Database) {
+  try {
+    const tableInfo = await db.all(`
+      PRAGMA table_info(accounts)
+    `) as any[];
+
+    const hasSettlementColumns = tableInfo.some(column => column.name === 'is_settled');
+
+    if (!hasSettlementColumns) {
+      console.log('Adding settlement columns to accounts table...');
+
+      await db.run('BEGIN TRANSACTION');
+
+      // Settlement tracking for fully paid-off loans (total amortization)
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN is_settled BOOLEAN DEFAULT FALSE
+      `);
+      await db.run(`
+        ALTER TABLE accounts ADD COLUMN settled_date DATE DEFAULT NULL
+      `);
+
+      await db.run('COMMIT');
+      console.log('Successfully migrated accounts table with settlement columns');
+    }
+  } catch (error) {
+    await db.run('ROLLBACK');
+    console.error('Error migrating accounts table for settlement:', error);
     throw error;
   }
 }

@@ -31,6 +31,8 @@ export interface Account {
   last_auto_update?: string; // Date of last automatic update
   original_balance?: number; // Original loan amount
   loan_start_date?: string; // When the loan started
+  is_settled?: boolean; // Loan fully paid off (total amortization) - stops auto updates
+  settled_date?: string; // Date the loan was fully paid off
 }
 
 export interface Balance {

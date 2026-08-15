@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Edit, Trash, Wallet, TrendingUp, RefreshCw, Calculator, BarChart3 } from "lucide-react"
+import { Plus, Edit, Trash, Wallet, TrendingUp, RefreshCw, Calculator, BarChart3, BadgeCheck, Undo2 } from "lucide-react"
 import { AccountForm } from "@/components/accounts/account-form"
 import { BalanceForm } from "@/components/accounts/balance-form"
 import { useTranslations } from 'next-intl'
@@ -84,6 +84,53 @@ export default function AccountsPage() {
       } catch (error) {
         console.error('Failed to apply auto update:', error)
         alert('Failed to apply auto update')
+      }
+    }
+  }
+
+  const handleSettleLoan = async (account: AccountWithBalance) => {
+    const amount = formatCurrency(account.current_balance || 0)
+    if (confirm(t('debt.settleConfirm', { amount }))) {
+      try {
+        const response = await fetch(`/api/accounts/${account.id}/settle`, {
+          method: 'POST'
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          alert(t('debt.settleSuccess', { amount: formatCurrency(data.settledAmount) }))
+          fetchAccounts()
+        } else {
+          alert(`${t('debt.settleError')}: ${data.error}`)
+        }
+      } catch (error) {
+        console.error('Failed to settle loan:', error)
+        alert(t('debt.settleError'))
+      }
+    }
+  }
+
+  const handleReactivateLoan = async (account: AccountWithBalance) => {
+    if (confirm(t('debt.reactivateConfirm'))) {
+      try {
+        const response = await fetch(`/api/accounts/${account.id}/settle`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reactivate' })
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          alert(t('debt.reactivateSuccess', { amount: formatCurrency(data.restoredBalance) }))
+          fetchAccounts()
+        } else {
+          alert(`${t('debt.reactivateError')}: ${data.error}`)
+        }
+      } catch (error) {
+        console.error('Failed to reactivate loan:', error)
+        alert(t('debt.reactivateError'))
       }
     }
   }
@@ -203,7 +250,7 @@ export default function AccountsPage() {
                         <TrendingUp className="h-5 w-5 text-red-600 flex-shrink-0" />
                       )}
                       <span className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${
-                        account.category === 'Banking' 
+                        account.category === 'Banking'
                           ? 'bg-blue-100 text-blue-700'
                           : account.category === 'Investment'
                           ? 'bg-green-100 text-green-700'
@@ -211,6 +258,12 @@ export default function AccountsPage() {
                       }`}>
                         {t(`categories.${account.category.toLowerCase()}`)}
                       </span>
+                      {!!account.is_settled && (
+                        <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 flex items-center gap-1">
+                          <BadgeCheck className="h-3 w-3" />
+                          {t('debt.settled')}
+                        </span>
+                      )}
                     </div>
                     <div className="flex space-x-1 flex-shrink-0">
                       <Button 
@@ -233,15 +286,37 @@ export default function AccountsPage() {
                           <Calculator className="h-4 w-4 text-green-600" />
                         </Button>
                       )}
-                      {account.category === 'Debt' && (account as any).auto_update_enabled && (
-                        <Button 
-                          variant="ghost" 
+                      {account.category === 'Debt' && !!(account as any).auto_update_enabled && !account.is_settled && (
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => handleAutoUpdate(account.id)}
                           className="h-8 w-8 p-0"
                           title="Apply monthly update"
                         >
                           <RefreshCw className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      )}
+                      {account.category === 'Debt' && !account.is_settled && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSettleLoan(account)}
+                          className="h-8 w-8 p-0"
+                          title={t('debt.settleLoan')}
+                        >
+                          <BadgeCheck className="h-4 w-4 text-emerald-600" />
+                        </Button>
+                      )}
+                      {account.category === 'Debt' && !!account.is_settled && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleReactivateLoan(account)}
+                          className="h-8 w-8 p-0"
+                          title={t('debt.reactivateLoan')}
+                        >
+                          <Undo2 className="h-4 w-4 text-amber-600" />
                         </Button>
                       )}
                       <Button 
@@ -305,6 +380,14 @@ export default function AccountsPage() {
                         <div>
                           <p className="text-sm text-gray-600">Original Balance</p>
                           <p className="text-sm">{formatCurrency((account as any).original_balance)}</p>
+                        </div>
+                      )}
+                      {!!account.is_settled && account.settled_date && (
+                        <div>
+                          <p className="text-sm text-gray-600">{t('debt.settledOn')}</p>
+                          <p className="text-sm font-medium text-emerald-600">
+                            {new Date(account.settled_date).toLocaleDateString()}
+                          </p>
                         </div>
                       )}
                     </>

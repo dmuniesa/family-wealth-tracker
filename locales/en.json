@@ -382,7 +382,17 @@
     "debtSummary": "Debt Summary",
     "viewSchedule": "View Amortization Schedule",
     "noDebtAccounts": "No debt accounts found",
-    "createFirstDebt": "Create your first debt account to start tracking loan amortization"
+    "createFirstDebt": "Create your first debt account to start tracking loan amortization",
+    "settleLoan": "Pay off loan completely",
+    "settleConfirm": "This will mark the loan as fully paid off ({amount}), set the balance to 0 and stop automatic monthly updates. Continue?",
+    "settleSuccess": "Loan fully paid off ({amount}). Automatic updates stopped.",
+    "settleError": "Failed to settle loan",
+    "settled": "Paid off",
+    "settledOn": "Paid off on",
+    "reactivateLoan": "Reactivate loan",
+    "reactivateConfirm": "This will reactivate the loan, restore the outstanding balance from the settlement and resume automatic monthly updates. Continue?",
+    "reactivateSuccess": "Loan reactivated. Balance restored: {amount}.",
+    "reactivateError": "Failed to reactivate loan"
   },
   "transactions": {
     "title": "Transactions",

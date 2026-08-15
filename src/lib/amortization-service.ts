@@ -39,6 +39,8 @@ export interface DebtSummary {
   totalInterestRemaining: number;
   autoUpdateEnabled: boolean;
   lastAutoUpdate?: string;
+  isSettled: boolean;
+  settledDate?: string;
 }
 
 export class AmortizationService {
@@ -297,6 +299,12 @@ export class AmortizationService {
         return { success: false, newBalance: 0, interestAdded: 0, error };
       }
 
+      if (account.is_settled) {
+        const error = `Loan "${account.name}" was fully paid off on ${account.settled_date} - automatic updates are stopped`;
+        await timer.error(error, undefined, { accountId, accountName: account.name });
+        return { success: false, newBalance: account.current_balance, interestAdded: 0, error };
+      }
+
       if (!account.auto_update_enabled || !account.apr_rate) {
         const error = 'Auto-update not enabled or APR not set';
         await timer.error(error, undefined, { accountId, accountName: account.name });
@@ -376,6 +384,203 @@ export class AmortizationService {
   }
 
   /**
+   * Mark a loan as fully paid off (total amortization)
+   * Records a final payoff balance entry of 0, stops automatic monthly
+   * updates and marks the account as settled.
+   */
+  async settleLoan(accountId: number): Promise<{ success: boolean; settledAmount: number; settledDate?: string; error?: string }> {
+    const timer = systemLogger.createTimer('debt_update', 'settle_loan', undefined, undefined, { accountId });
+
+    try {
+      const db = await getDatabase();
+
+      // Get account details with current balance
+      const account = await db.get(`
+        SELECT a.*,
+               COALESCE(
+                 (SELECT amount FROM balances
+                  WHERE account_id = a.id
+                  ORDER BY date DESC, created_at DESC
+                  LIMIT 1),
+                 a.original_balance,
+                 0
+               ) as current_balance
+        FROM accounts a
+        WHERE a.id = ? AND a.category = 'Debt'
+      `, [accountId]) as Account & { current_balance: number };
+
+      if (!account) {
+        const error = 'Account not found or not a debt account';
+        await timer.error(error, undefined, { accountId });
+        return { success: false, settledAmount: 0, error };
+      }
+
+      if (account.is_settled) {
+        const error = `Loan "${account.name}" is already fully paid off (settled on ${account.settled_date})`;
+        await timer.error(error, undefined, { accountId, accountName: account.name });
+        return { success: false, settledAmount: account.current_balance, error };
+      }
+
+      const settledAmount = Math.max(0, account.current_balance);
+      const settledDate = new Date().toISOString().split('T')[0];
+
+      // Record the final payoff: balance goes to 0
+      await db.run(`
+        INSERT INTO balances (
+          account_id, amount, date, balance_type, interest_amount,
+          principal_amount, payment_amount, notes,
+          created_at, updated_at
+        )
+        VALUES (?, 0, ?, 'payment', 0, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `, [
+        accountId,
+        settledDate,
+        settledAmount,
+        settledAmount,
+        `Loan fully paid off (total amortization) on ${settledDate}: €${settledAmount.toFixed(2)} outstanding balance cleared`
+      ]);
+
+      // Mark as settled and stop automatic updates
+      await db.run(`
+        UPDATE accounts
+        SET is_settled = TRUE,
+            settled_date = ?,
+            auto_update_enabled = FALSE,
+            remaining_months = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [settledDate, accountId]);
+
+      await timer.success(
+        `Loan "${account.name}" fully paid off: €${settledAmount.toFixed(2)} settled, automatic updates stopped`,
+        {
+          accountId,
+          accountName: account.name,
+          familyId: account.family_id,
+          settledAmount,
+          settledDate,
+          previousBalance: account.current_balance
+        }
+      );
+
+      return { success: true, settledAmount, settledDate };
+    } catch (error) {
+      console.error('Error settling loan:', error);
+      await timer.error(error, 'Database error while settling loan');
+      return { success: false, settledAmount: 0, error: 'Database error' };
+    }
+  }
+
+  /**
+   * Reactivate a settled loan (undo total amortization)
+   * Restores the outstanding balance recorded at settlement, recomputes
+   * the remaining months from the loan term and resumes automatic updates.
+   */
+  async reactivateLoan(accountId: number): Promise<{ success: boolean; restoredBalance: number; remainingMonths?: number; error?: string }> {
+    const timer = systemLogger.createTimer('debt_update', 'reactivate_loan', undefined, undefined, { accountId });
+
+    try {
+      const db = await getDatabase();
+
+      // Get account details
+      const account = await db.get(`
+        SELECT a.*
+        FROM accounts a
+        WHERE a.id = ? AND a.category = 'Debt'
+      `, [accountId]) as Account;
+
+      if (!account) {
+        const error = 'Account not found or not a debt account';
+        await timer.error(error, undefined, { accountId });
+        return { success: false, restoredBalance: 0, error };
+      }
+
+      if (!account.is_settled) {
+        const error = `Loan "${account.name}" is not settled`;
+        await timer.error(error, undefined, { accountId, accountName: account.name });
+        return { success: false, restoredBalance: 0, error };
+      }
+
+      // Recover the amount that was paid off from the settlement entry
+      const settlementEntry = await db.get(`
+        SELECT principal_amount
+        FROM balances
+        WHERE account_id = ? AND balance_type = 'payment' AND amount = 0
+          AND date = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+      `, [accountId, account.settled_date]) as { principal_amount: number } | undefined;
+
+      if (!settlementEntry || !(settlementEntry.principal_amount > 0)) {
+        const error = 'Settlement record not found - record the outstanding balance manually before reactivating';
+        await timer.error(error, undefined, { accountId, accountName: account.name, settledDate: account.settled_date });
+        return { success: false, restoredBalance: 0, error };
+      }
+
+      const restoredBalance = settlementEntry.principal_amount;
+      const reactivationDate = new Date().toISOString().split('T')[0];
+
+      // Recompute remaining months from loan term and start date (same as account updates)
+      let remainingMonths = 0;
+      if (account.loan_term_months) {
+        remainingMonths = account.loan_term_months;
+        if (account.loan_start_date) {
+          const startDate = new Date(account.loan_start_date);
+          const currentDate = new Date();
+          const monthsElapsed = (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
+                              (currentDate.getMonth() - startDate.getMonth());
+          remainingMonths = Math.max(0, account.loan_term_months - monthsElapsed);
+        }
+      }
+
+      // Non-destructive: record a corrective entry restoring the balance
+      await db.run(`
+        INSERT INTO balances (
+          account_id, amount, date, balance_type, notes,
+          created_at, updated_at
+        )
+        VALUES (?, ?, ?, 'manual', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `, [
+        accountId,
+        restoredBalance,
+        reactivationDate,
+        `Loan reactivated: balance restored after settlement on ${account.settled_date} was reversed`
+      ]);
+
+      // Clear the settled flag, recompute remaining months and resume auto updates
+      // (auto updates only resume if the loan has an APR rate)
+      await db.run(`
+        UPDATE accounts
+        SET is_settled = FALSE,
+            settled_date = NULL,
+            auto_update_enabled = ?,
+            remaining_months = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [account.apr_rate ? 1 : 0, remainingMonths, accountId]);
+
+      await timer.success(
+        `Loan "${account.name}" reactivated: €${restoredBalance.toFixed(2)} balance restored, ${remainingMonths} payments remaining`,
+        {
+          accountId,
+          accountName: account.name,
+          familyId: account.family_id,
+          restoredBalance,
+          remainingMonths,
+          reactivationDate,
+          settledDate: account.settled_date
+        }
+      );
+
+      return { success: true, restoredBalance, remainingMonths };
+    } catch (error) {
+      console.error('Error reactivating loan:', error);
+      await timer.error(error, 'Database error while reactivating loan');
+      return { success: false, restoredBalance: 0, error: 'Database error' };
+    }
+  }
+
+  /**
    * Get debt summaries for all family debt accounts
    */
   async getDebtSummaries(familyId: number): Promise<DebtSummary[]> {
@@ -400,25 +605,27 @@ export class AmortizationService {
         const nextPayment = this.calculateNextPayment(debt, debt.current_balance);
         
         let payoffDate: string | undefined;
-        if (debt.remaining_months && debt.remaining_months > 0) {
+        if (!debt.is_settled && debt.remaining_months && debt.remaining_months > 0) {
           const payoff = new Date();
           payoff.setMonth(payoff.getMonth() + debt.remaining_months);
           payoffDate = payoff.toISOString().split('T')[0];
         }
 
-        const schedule = this.generateAmortizationSchedule(debt, debt.current_balance);
-        
+        const schedule = debt.is_settled ? null : this.generateAmortizationSchedule(debt, debt.current_balance);
+
         return {
           accountId: debt.id,
           accountName: debt.name,
           currentBalance: debt.current_balance,
           monthlyPayment: debt.monthly_payment || 0,
-          interestThisMonth: nextPayment?.interestPayment || 0,
-          principalThisMonth: nextPayment?.principalPayment || 0,
+          interestThisMonth: debt.is_settled ? 0 : (nextPayment?.interestPayment || 0),
+          principalThisMonth: debt.is_settled ? 0 : (nextPayment?.principalPayment || 0),
           payoffDate,
           totalInterestRemaining: schedule?.totalInterest || 0,
           autoUpdateEnabled: debt.auto_update_enabled || false,
-          lastAutoUpdate: debt.last_auto_update
+          lastAutoUpdate: debt.last_auto_update,
+          isSettled: debt.is_settled || false,
+          settledDate: debt.settled_date
         };
       });
     } catch (error) {
@@ -437,12 +644,13 @@ export class AmortizationService {
       const db = await getDatabase();
       
       const eligibleDebts = await db.all(`
-        SELECT id FROM accounts 
-        WHERE family_id = ? 
-          AND category = 'Debt' 
+        SELECT id FROM accounts
+        WHERE family_id = ?
+          AND category = 'Debt'
           AND auto_update_enabled = 1
           AND apr_rate IS NOT NULL
           AND remaining_months > 0
+          AND is_settled = 0
       `, [familyId]) as { id: number }[];
 
       let updated = 0;

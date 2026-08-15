@@ -382,7 +382,17 @@
     "debtSummary": "Resumen de Deudas",
     "viewSchedule": "Ver Tabla de Amortización",
     "noDebtAccounts": "No se encontraron cuentas de deuda",
-    "createFirstDebt": "Crea tu primera cuenta de deuda para comenzar a rastrear la amortización del préstamo"
+    "createFirstDebt": "Crea tu primera cuenta de deuda para comenzar a rastrear la amortización del préstamo",
+    "settleLoan": "Amortizar préstamo totalmente",
+    "settleConfirm": "Esto marcará el préstamo como totalmente amortizado ({amount}), pondrá el saldo a 0 y detendrá las actualizaciones automáticas mensuales. ¿Continuar?",
+    "settleSuccess": "Préstamo amortizado totalmente ({amount}). Actualizaciones automáticas detenidas.",
+    "settleError": "Error al amortizar el préstamo",
+    "settled": "Amortizado",
+    "settledOn": "Amortizado el",
+    "reactivateLoan": "Reactivar préstamo",
+    "reactivateConfirm": "Esto reactivará el préstamo, restaurará el saldo pendiente que había en la amortización y reanudará las actualizaciones automáticas mensuales. ¿Continuar?",
+    "reactivateSuccess": "Préstamo reactivado. Saldo restaurado: {amount}.",
+    "reactivateError": "Error al reactivar el préstamo"
   },
   "transactions": {
     "title": "Movimientos",

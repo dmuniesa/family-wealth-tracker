@@ -266,13 +266,15 @@ export class NotificationScheduler {
       const db = await getDatabase();
       
       // Get all family IDs that have debt accounts with auto-update enabled
+      // (excluding fully paid-off loans)
       const familyIds = await db.all(`
-        SELECT DISTINCT family_id 
-        FROM accounts 
-        WHERE category = 'Debt' 
-          AND auto_update_enabled = 1 
+        SELECT DISTINCT family_id
+        FROM accounts
+        WHERE category = 'Debt'
+          AND auto_update_enabled = 1
           AND apr_rate IS NOT NULL
           AND remaining_months > 0
+          AND is_settled = 0
       `) as { family_id: number }[];
 
       let totalUpdated = 0;
